@@ -22,7 +22,7 @@ $ npm install -g webpack live-server
 然后，git直接clone本仓库以及依赖包
 
 ```javascript
-$ git clone https://github.com/GaoQ1/webpack-scaffold.git
+$ git clone https://github.com/GaoQ1/webpack-start.git
 $ cd webpack-scaffold
 $ npm install
 ```
