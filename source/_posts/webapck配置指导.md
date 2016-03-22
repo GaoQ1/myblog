@@ -75,3 +75,4 @@ $ live-server
  - 阮大神的[webpack-demos](https://github.com/ruanyf/webpack-demos)
  - Petehunt大神的[webpack-howto](https://github.com/petehunt/webpack-howto)
  - [Webpack documents](https://webpack.github.io/docs/)
+ - 鄙人的[blog](http://blog.gaoquan.wang)，会长期更新
