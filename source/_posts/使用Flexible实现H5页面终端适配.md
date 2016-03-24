@@ -14,7 +14,7 @@ categories: 教程
 
 首先放一张设计完成的页面效果图：
 
-![页面效果图](../images/flexible/flexible01.png)
+![页面效果图](/images/flexible/flexible01.png)
 
 就是这样一个简单的H5页面，虽然H5页面相对于PC端Web页面简单了很多，但是难点在于让页面适配众多不同的终端设备。而终端设备有哪些，详细参考[Device metrics](https://design.google.com/devices/)，看完之后会感觉很恶心，但仍想完美的解决，这时牛X的手淘团队总结了一套[Flexible解决方案](https://github.com/amfe/lib-flexible)
 
@@ -22,11 +22,11 @@ categories: 教程
 
 #### 1. 直接上图看看手淘的适配协作模式：
 
-![手淘方案](../images/flexible/flexible02.png)
+![手淘方案](/images/flexible/flexible02.png)
 
 对这张图我的理解让UI在750px设计并标注大小和坐标，再矢量放大1.5倍后切图，于是我得到了所谓的@3x切图
 
-![@3x切图](../images/flexible/flexible03.png)
+![@3x切图](/images/flexible/flexible03.png)
 
 #### 2. 引入flexible.js
 
@@ -46,7 +46,7 @@ categories: 教程
 ```
 
 将代码中的***{{version}}***换成对应的版本号0.3.4.
-![flexible.js引入](../images/flexible/flexible04.png)
+![flexible.js引入](/images/flexible/flexible04.png)
 
 注意使用lib-flexible，通常不要写：
 ```javascript
@@ -55,7 +55,7 @@ categories: 教程
 交给flexible.js自己处理。
 
 我们来看看效果，在chrome中选择iphone6可以看到font-size:75px：
-![iphone6](../images/flexible/flexible05.png)
+![iphone6](/images/flexible/flexible05.png)
 
 #### 3. 把视觉搞中的px转换成rem
 
@@ -77,15 +77,15 @@ categories: 教程
 
 关于这方面的工具有很多，手淘同学编写了各种工具，这里我使用的[PostCSS(px2rem)](https://www.npmjs.com/package/px2rem)，非常好用，在此谢过。gulpfile.js文件的编写如下：
 
-![gulpfile.js](../images/flexible/flexible06.png)
+![gulpfile.js](/images/flexible/flexible06.png)
 
 配置完成后实际用的时候只要这样使用：
 
-![rem1.js](../images/flexible/flexible07.png)
+![rem1.js](/images/flexible/flexible07.png)
 
 px2rem处理之后将会变成：
 
-![rem2.js](../images/flexible/flexible08.png)
+![rem2.js](/images/flexible/flexible08.png)
 
 另外如果你是使用Sass或是Less，你也可以使用Sass函数、混合宏来实现：
 
@@ -107,10 +107,10 @@ px2rem处理之后将会变成：
 
 最后，直接看下效果吧。
 Mobile S
-![Mobile S](../images/flexible/flexible09.png)
+![Mobile S](/images/flexible/flexible09.png)
 
 Mobile L
-![Mobile L](../images/flexible/flexible10.png)
+![Mobile L](/images/flexible/flexible10.png)
 
 ## 总结
 
