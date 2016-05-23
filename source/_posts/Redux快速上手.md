@@ -244,35 +244,149 @@ dispatch分发action。**这是出发state变化的唯一途径。**
       state = reducer(state,action);
       listeners.forEach(listener => listener());
     }
+    const subscribe = (listener) => {
+      listeners.push(listener);
+      return () => {
+        listeners = listeners.filter(item => item !== listener);
+      }
+    }
+    dispatch({});
+    return {getState,dispatch,subscribe};
+  }
+  const store = createStore(counter);
+  //view 对应到react里面的component
+  const PureRender = () => {
+    document.body.innerText = store.getState();
+  }
+  //store subscribe 订阅或是监听view(on)
+  store.subscribe(PureRender);
+  PureRender();
+  document.addEventListener('click',function(e){
+    //store dispatch 调度分发一个action(fire)
+    store.dispatch({type:'DECREMENT'})；
+  })
+```
 
-    //todo:
+## 4.2 combineReducers
+调用方式：combineReducers(reducers)
+
+随着应用变得复杂，需要对reducer函数进行拆分，拆分后的每一块独立负责管理state的一部分。把一个由多个不同reducer函数作为value的object，合并成一个最终的reducer函数，然后就可以对这个reducer调用createStore.
+
+示例如下：
+代码清单：reducer/todos.js
+```javascript
+  export default function todos(state = [],action){
+    switch(action.type){
+      case 'ADD_TODO':
+        return state.concat([action.text])
+      default:
+        return state
+    }
   }
 ```
 
+代码清单：reducer/counter.js
+```javascript
+  export default function counter(state = [],action){
+    switch(action.type){
+      case 'INCREMENT':
+        return state + 1
+      case 'DECREMENT':
+        return state - 1
+      default:
+        return state
+      }
+    }
+  }
+```
 
+代码清单：reducer/index.js
+```javascript
+  import { combineReducers } from 'redux'
+  import todos from './todos'
+  import counter from './counter'
 
+  export default combineReducers({
+    todos,
+    counter
+  })
+```
 
+代码清单：App.js
+```javascript
+  import {createStore} from 'redux'
+  import reducer from './reducer/index.js'
+  let store = createStore(reducer)
+  console.log('当前的state: ',store.getState())
+  store.dispatch({
+    type:'ADD_TODO',
+    text:'Use Redux'
+  })
+  store.dispatch({
+    type:'INCREMENT'
+  })
+  console.log('改变后的state: ',store.getState());
+```
 
+## 4.3 applyMiddleware
+调用方式: applyMiddleware(...middlewares)
 
+使用包含自定义功能的middleware来扩展Redux是一种推荐的方式。Middleware可以让你包装store的dispatch方法来达到你想要的目的。同时，middleware还拥有“可组合”这一关键特性。多个middleware可以被组合到一起使用，形成middleware链。其中，每个middleware都不需要关心链中它前后的middleware的任何信息。
 
+## 4.4 bindActionCreators
+调用方式：bindActionCreators(actionCreators,dispatch)
 
+唯一使用bindActionCreators的场景是当你需要把action creator往下传到一个组件上，却不想让这个组件察觉到Redux的存在，而且不希望把Redux store或dispatch传给它。
 
+## 4.5 compose
+调用方法：compose(...functions)
 
+compose用来实现从右到左组合传入的多个函数，它做的只是让你不使用深度右括号的情况下来些深度嵌套的函数，仅此而已。
 
+# 5. 使用React-redux连接react和redux
+## 5.1 没有react-redux的写法
+封装一个组件，将组件和Redux做基本的组合
+```javascript
+  import { createStore } from 'redux';
+  import React, {Component} from 'react';
+  import ReactDOM from 'react-dom';
+  //reducer 纯函数，具体的action执行逻辑
+  const counter = (state = 0,action) => {
+    switch (action.type){
+      case 'INCREMENT':
+        return state + 1;
+      case 'DECREMENT':
+        return state - 1;
+      default:
+        return state;
+    }
+  }
+  const store = createStore(counter);
+  //Counter组件
+  class Counter extends Component{
+    render(){
+      return (
+        <div>
+          <h1>{this.props.value}</h1>
+          <button onClick={this.props.onIncrement}>点击加1</button>
+          <button onClick={this.props.onDecrement}>点击减1</button>
+        </div>
+      )
+    }
+  }
+  const PureRender = () => {
+    ReactDOM.render(
+      <Counter
+        value={store.getState()}
+        onIncrement={ () => store.dispatch({type: "INCREMENT"}) }
+        onDecrement={ () => store.dispatch({type: "DECREMENT"}) }
+      />, document.getElementById('app')
+    )
+  }
+  // store subscribe 订阅或是监听view（on）
+  store.subscribe(PureRender)
+  PureRender()
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-----------------------
+## 5.2 React-redux提供的contect和Provider
+<Provider store>使组件层级中的connect()方法都能够获得Redux store.正常情况下，你的根组件应该嵌套在'<Provider>'中才能使用connect()方法。
