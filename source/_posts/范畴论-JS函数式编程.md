@@ -207,3 +207,100 @@ javascrip中有四种原始类型：number、string、Boolean、function.我们�
 ```
 
 ## 函数组合，重访(revisitd)
+函数也是一种我们能够用函子来创建的原始类型，这个函子叫做“fcompose”.我们对函子是这样定义的：它从容器中取一个值，并对其应用一个函数。如果这个容器是一个函数，我们只需要调用它并获取里面的值。
+
+我们已经知道了什么事函数组合，不过让我们来看看在范畴论驱动的环境里它们能做些什么。
+
+函数组合就是结合(associative)，如果你的高中代数老师也像我这样的话那她只告诉了你函数组合的定律有什么，而没有没教你用它能做些什么。 在实践中，组合就是结合律所能够做的。
+```
+  (a*b)*c = a*(b*c)
+  (f o g)o h = f o (g o h)
+```
+
+```
+  f o g ≠ g o f
+```
+
+我们可以任意进行内部组合，无所谓怎样分组。交换律也没有什么可迷惑的。f o g 不总等于 g o f。比如说，一个句子的第一个单词被反转并不等同于一个被反转的句子的第一个单词。
+
+总的来说意思就是哪个函数以什么样的顺序被执行是无所谓的，只要每个函数的输入来源于上一个函数的输出。不过，等等，如果右边的函数依赖于左边的函数，不就是只有一个固定的求值顺序吗？从左到右？是的，如果把它封装起来，我们就可以按照我们感觉合适的方式来控制它。这就使得在JavaScript中可以实现惰性求值。
+```
+  (a*b)*c = a*(b*c)
+  (f o g)o h = f o (g o h)
+```
+
+我们来重写函数组合，不作为函数原型的扩展，而是作为一个单独的函数，这样我们就可以的到更多的功能。基本的形式是这样的：
+
+```javascript
+  var fcompose = function(f,g){
+    return function(){
+      return f.call(this,g.apply(this,arguments));
+    }
+  }
+```
+
+不过我们还得让它能接受任意数量的输入。
+```javascript
+  var fcompose = function(){
+    //首先确保所有的参数都是函数
+    var funcs = arrayOf(func)(Array.prototype.slice.call(arguments));
+    return function(){
+      var args = arguments;
+      for(var i=func.length-1;i>=0;i--){
+        args = [funcs[i].apply(this,args)];
+      }
+      return args[0];
+    }
+  }
+```
+
+现在我们封装好了这些函数并可以控制它们了。我们重写了组合函数使得每一个函数接受另一个函数作为输入， 存储起来，并同样返回一个对象。这里并不是接受一个数组作为输入处理它，而是对每一个操作返回一个新的数组， 我们可以在源头上让每一个元素接受一个数组，把所有操作合到一起执行（所有map、filter等等组合到一起）， 最终把结果存到一个新数组里。这就是通过函数组合实现的惰性求值。这里我们没有理由重新造轮子， 许多库对于这个概念都有很好的实现，包括Lazy.js、Bacon.js以及wu.js等库。
+
+利用这一不同模式的结果，我们可以做更多事情：异步迭代、异步事件处理、惰性求值甚至自动并行。
+
+# 单子(Monad)
+单子是帮助你组合函数的工具。
+
+像原始类型一样，单子是一种数据结构，它可以被当做装载让函子取东西的容器使用。函子取出了数据，进行处理，然后放到一个新的单子中并将其返回。
+
+我么要关注的三种单子：
+ - Maybes
+ - Promises
+ - Lenses
+
+除了用于数组的map和函数的compose以外，我们还有三种函子(maybe、promise和lens).这仅仅是另一些函子和单子。
+
+## Maybe
+Maybe可以让我们优雅地使用有可能为空并且有默认值的数据。maybe是一个可以有值也可以没有值的变量，并且对于调用者来说无所谓。
+就他自己来说，这看起来不是什么大问题。所有人都知道空值检查可以通过一个if-self语句很容易实现
+```javascript
+  if(getUsername() == null){
+    username = 'Anonymous';
+  }else{
+    username = getUsername();
+  }
+```
+
+但是用函数式编程，我们要打破过程、一行接一行的做事方式，而应该用函数和数据的管道方式。如果我们不得不从链的中间断开来检查是否存在，我们就的创建临时变量并写更多的代码。maybe仅仅是帮助我们保持逻辑跟随管道的工具。
+
+要实现maybe，我们首先要创建一些构造器。
+```javascript
+  //Maybe单子构造器，目前是空的
+  var Maybe = function(){}
+
+  //None实例，对一个没有值的对象的包装
+  var None = function(){};
+  None.prototype = Object.create(Maybe.prototype);
+  None.prototype.toString = function(){return 'None'};
+
+  //现在可以写`none`函数
+  //这让我们不用总写`new None()`
+  var none = function(){return new None()};
+
+  //Just实例，对一个有一个值的对象的包装
+  var Just = function(x){return this.x = x};
+  Just.prototype = Object.create(Maybe.prototype);
+  Just.prototype.toString = function(){return "Just" + this.x};
+  var just = function(x){return new Just(x)};
+```
+-----------------
