@@ -406,23 +406,83 @@ compose 用来实现从右到左来组合传入的多个函数，它做的只是
   )
 ```
 
-connect([mapState ToProps],[mapDispatchToProps],[mergeProps],[options])
+connect([mapState ToProps],[mapDispatchToProps],[mergeProps],[options]) connect方法是来连接React组件与Redux store,连接操作不会改变原来的组件类，反而返回一个新的已与Redux store连接的组件类。
 
+使用React-redux的一个简单完整示例
+```javascript
+  import React, { Component, PropTypes} from 'react';
+  import ReactDOM from 'react-dom';
+  import { createStore } from 'redux';
+  import { Provider, connect} from 'react-redux';
+  //这是一个展示型组件counter
+  class Counter extends Component {
+    render(){
+      const { value, onIncrementClick} = this.props;
+      return (
+        <div>
+          <span>{value}</span>
+          <button onClick={onIncrementClick}>点我加一</button>
+        </div>
+      )
+    }
+  }
+  Counter.propTypes = {
+    value: PropTypes.number.isRequired,
+    onIncrementClick: PropTypes.func.isRequired
+  }
+  //Action
+  const increaseAction = {type: 'increase'}
+  //Reducer
+  function counter(state={count:0},action){
+    let count = state.count;
+    switch(action.type){
+      case 'increase':
+        return {count:count + 1}
+      default:
+        return count
+    }
+  }
+  //store
+  let store = createStore(counter);
+  //Map Redux state to component props
+  function mapStateToProps(state){
+    console.log(state);
+    //这里拿到的state就是store里面给的state
+    return {
+      value: state.count
+    }
+  }
 
+  //Map Redux actions to component props
+  function mapDispatchToProps(dispatch){
+    //dispatch
+    return {
+      onIncrementClick: () => dispatch(increaseAction);
+    }
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-----------------------
+  class App extends Component{
+    render(){
+      //store里的state经过connect连接后给了根组件的props
+      console.log(this.prps);
+      return (
+        <div>
+          <h1>react-redux</h1>
+          <Counter {...this.props} />
+        </div>
+      )
+    }
+  }
+  //Connected Component
+  let RootApp = connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )(App)
+  ReactDOM.render(
+    <Provider store={store}>
+      <RootApp />
+    </Provider>,
+    document.getElementById('app')
+  )
+```
+实际应用中，connect这个部分会比较复杂。
