@@ -406,7 +406,7 @@ compose 用来实现从右到左来组合传入的多个函数，它做的只是
   )
 ```
 
-connect([mapState ToProps],[mapDispatchToProps],[mergeProps],[options]) connect方法是来连接React组件与Redux store,连接操作不会改变原来的组件类，反而返回一个新的已与Redux store连接的组件类。
+connect([mapStateToProps],[mapDispatchToProps],[mergeProps],[options]) connect方法是来连接React组件与Redux store,连接操作不会改变原来的组件类，反而返回一个新的已与Redux store连接的组件类。
 
 使用React-redux的一个简单完整示例
 ```javascript
@@ -486,3 +486,294 @@ connect([mapState ToProps],[mapDispatchToProps],[mergeProps],[options]) connect�
   )
 ```
 实际应用中，connect这个部分会比较复杂。
+
+# 6. 一步步开发一个TODO应用
+## 6.1 入口文件
+index.js
+```javascript
+  import React from 'react';
+  import {render} from 'react-dom';
+  import {createStore} from 'redux';
+  import {Provider} from 'react-redux';
+  import App from './containers/App';
+  import todoApp from './reducers';
+
+  let store = createStore(todoApp);
+
+  let rootElement = document.getElementById('app');
+  render(
+    <Provider store={store}>
+      <App />
+    </Provider>,
+    rootElement
+  )
+```
+
+## 6.2 Action创建函数和常量
+action.js
+```javascript
+  //action类型
+  export const ADD_TODO = 'ADD_TODO';
+  export const COMPLETE_TODO = 'COMPLETE_TODO';
+  export const SET_VISIBILITY_FILTER = 'SET_VISIBILITY_FILTER';
+  //其他常量
+  export const VisibilityFilter = {
+    SHOW_ALL: 'SHOW_ALL',
+    SHOW_COMPLETED: 'SHOW_COMPLETED',
+    SHOW_ACTIVE: 'SHOW_ACTIVE'
+  }
+  //action创建函数
+  export function addTodo(text){
+    return {type: ADD_TODO,text}
+  }
+  export function completeTodo(index){
+    return {type: COMPLETE_TODO,index}
+  }
+  export function setVisibilityFilter(filter){
+    return {type: SET_VISIBILITY_FILTER,filter}
+  }
+```
+
+## 6.3 Reducers
+reducers.js
+```javascript
+  import {combineReducers} from 'redux';
+  import {ADD_TODO, COMPLETE_TODO, SET_VISIBILITY_FILTER, VisibilityFilter} from './actions';
+  const {SHOW_ALL} = VisibilityFilter;
+
+  function visibilityFilter(state = SHOW_ALL, action){
+    switch(action.type){
+      case SET_VISIBILITY_FILTER:
+        return action.filter
+      default:
+        return state
+    }
+  }
+
+  function todos(state=[],action){
+    switch(action.type){
+      case ADD_TODO:
+        return [
+          ...state,
+          {
+            text:action.text,
+            completed: false
+          }
+        ]
+      case COMPLETE_TODO:
+        return [
+          ...state.slice(0,action.index),
+          Object.assign({},state[action.index],{
+            completed:true
+          }),
+          ...state.slice(action.index + 1)
+        ]
+      default:
+        return state
+    }
+  }
+
+  const todoApp = combineReducers({
+    visibilityFilter,
+    todos
+  })
+
+  export default todoApp
+```
+
+## 6.4 容器组件
+containers/App.js
+```javascript
+  import React, {Component, PropTypes} from 'react';
+  import {connect} from 'react-redux';
+  import {addTodo, completeTodo, setVisibilityFilter, VisibilityFilter} from '../actions';
+  import AddTodo from '../components/AddTodo';
+  import TodoList from '../components/TodoList';
+  import Footer from '../components/Footer';
+
+  class App extends Component {
+    render(){
+      //Injected by connect() call
+      const {dispatch, visibleTodos, visibilityFilter } = this.props;
+      return (
+        <div>
+          <AddTodo onAddClick={text =>
+            dispatch(addTodo(text))
+          } />
+          <TodoList
+            todos={visibleTodos}
+            onAddClick={index =>
+              dispatch(completeTodo(index))
+          } />
+          <Footer
+            filter={visibilityFilter}
+            onFilterChange={nextFilter =>
+              dispatch(setVisibilityFilter(nextFilter))
+          } />
+        </div>
+      )
+    }
+  }
+
+  App.propTypes = {
+    visibleTodos: PropTypes.arrayOf(PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired
+    }).isRequired).isRequired,
+    visibilityFilter: PropTypes.oneOf({
+      'SHOW_ALL',
+      'SHOW_COMPLETED',
+      'SHOW_ACTIVE'
+    }).isRequired
+  }
+
+  function selectTodos(todo,filter){
+    switch(filter){
+      case visibilityFilters.SHOW_ALL:
+        return todos
+      case VisibilityFilters.SHOW_COMPLETED:
+        return todos.filter(todo => todo.completed)
+      case VisibilityFilters.SHOW_ACTIVE:
+        return todos.filter(todo => !todo.completed)
+    }
+  }
+
+  function select(state){
+    return {
+      visibleTodos: selectTodos(state.todos,state.visibilityFilter),
+      visibilityFilter: state.visibilityFilter
+    }
+  }
+  // 包装 component ，注入 dispatch 和 state 到其默认的 connect(select)(App) 中；
+  export default connect(select)(App)
+```
+
+## 6.5 展示组件
+components/AddTodo.js
+```javascript
+  import React, {Component, PropTypes} from 'react';
+
+  export default class AddTodo extends Component {
+    render() {
+      return (
+        <div>
+          <input type='text' ref='input' />
+          <button onClick={(e) => this.handleClick(e)}>
+            Add
+          </button>
+        </div>
+      )
+    }
+
+    handleClick(e) {
+      const node = this.refs.input
+      const text = node.value.trim()
+      this.props.onAddClick(text)
+      node.value = ''
+    }
+  }
+
+  AddTodo.propTypes = {
+    onAddClick: PropTypes.func.isRequired
+  }
+```
+
+components/Footer.js
+```javascript
+import React, { Component, PropTypes } from 'react'
+
+export default class Footer extends Component {
+renderFilter(filter, name) {
+  if (filter === this.props.filter) {
+    return name
+  }
+
+  return (
+    <a href='#' onClick={e => {
+      e.preventDefault()
+      this.props.onFilterChange(filter)
+    }}>
+      {name}
+    </a>
+  )
+}
+
+render() {
+  return (
+    <p>
+      Show:
+      {' '}
+      {this.renderFilter('SHOW_ALL', 'All')}
+      {', '}
+      {this.renderFilter('SHOW_COMPLETED', 'Completed')}
+      {', '}
+      {this.renderFilter('SHOW_ACTIVE', 'Active')}
+      .
+    </p>
+  )
+}
+}
+
+Footer.propTypes = {
+onFilterChange: PropTypes.func.isRequired,
+filter: PropTypes.oneOf([
+  'SHOW_ALL',
+  'SHOW_COMPLETED',
+  'SHOW_ACTIVE'
+]).isRequired
+}
+```
+
+components/Todo.js
+```javascript
+import React, { Component, PropTypes } from 'react'
+
+export default class Todo extends Component {
+render() {
+  return (
+    <li
+      onClick={this.props.onClick}
+      style={{
+        textDecoration: this.props.completed ? 'line-through' : 'none',
+        cursor: this.props.completed ? 'default' : 'pointer'
+      }}>
+      {this.props.text}
+    </li>
+  )
+}
+}
+
+Todo.propTypes = {
+onClick: PropTypes.func.isRequired,
+text: PropTypes.string.isRequired,
+completed: PropTypes.bool.isRequired
+}
+```
+
+components/TodoList.js
+```javascript
+import React, { Component, PropTypes } from 'react'
+import Todo from './Todo'
+
+export default class TodoList extends Component {
+render() {
+  return (
+    <ul>
+      {this.props.todos.map((todo, index) =>
+        <Todo {...todo}
+              key={index}
+              onClick={() => this.props.onTodoClick(index)} />
+      )}
+    </ul>
+  )
+}
+}
+
+TodoList.propTypes = {
+onTodoClick: PropTypes.func.isRequired,
+todos: PropTypes.arrayOf(PropTypes.shape({
+  text: PropTypes.string.isRequired,
+  completed: PropTypes.bool.isRequired
+}).isRequired).isRequired
+}
+```
