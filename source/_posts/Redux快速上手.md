@@ -6,6 +6,8 @@ tags:
   - Redux
 categories: 转载笔记
 ---
+> 文章转载自[Redux快速上手](http://guoyongfeng.github.io/idoc/html/React%E8%AF%BE%E7%A8%8B%E4%B8%93%E9%A2%98/Redux%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B.html)，仅供学习和参考
+
 在实际的项目中，面对复杂业务逻辑的挑战，如何清晰高效的管理应用内的数据流动成为了关键。
 
 Flux思想已经在提出后得到逐步推广，并广泛应用到实际项目中。facebook的flux实现，开源社区的reflux、redux等类库开始涌现并得到了广大开发者的认同和使用。
@@ -250,6 +252,7 @@ dispatch分发action。**这是出发state变化的唯一途径。**
         listeners = listeners.filter(item => item !== listener);
       }
     }
+<<<<<<< HEAD
     dispatch({});
     return {getState,dispatch,subscribe};
   }
@@ -257,6 +260,41 @@ dispatch分发action。**这是出发state变化的唯一途径。**
   //view 对应到react里面的component
   const PureRender = () => {
     document.body.innerText = store.getState();
+=======
+    dispatch();
+    return { getState, dispatch, subscribe };
+    const store = createStore(counter);
+    // view 对应到React里面的component
+    const PureRender = () => {
+      document.body.innerText = store.getState();
+    }
+    // store subscribe 订阅或是监听view（on）
+    store.subscribe(PureRender);
+    PureRender();
+    document.addEventListener('click', function( e ){
+      // store dispatch 调度分发一个 action（fire）
+      store.dispatch({ type: 'DECREMENT'});
+    })
+  }
+```
+
+## 4.2 combineReducers
+调用方式：combineReducers(reducers)
+
+随着应用变得复杂，需要对 reducer 函数进行拆分，拆分后的每一块独立负责管理 state 的一部分。把一个由多个不同 reducer 函数作为 value 的 object，合并成一个最终的 reducer 函数，然后就可以对这个 reducer 调用 createStore。
+
+示例如下
+
+代码清单：reducer/todos.js
+```javascript
+  export default function todos(state = [], action) {
+    switch (action.type) {
+    case 'ADD_TODO':
+      return state.concat([action.text])
+    default:
+      return state
+    }
+>>>>>>> b872c55882669de3f10e29ad039674d345d37f2e
   }
   //store subscribe 订阅或是监听view(on)
   store.subscribe(PureRender);
@@ -267,6 +305,7 @@ dispatch分发action。**这是出发state变化的唯一途径。**
   })
 ```
 
+<<<<<<< HEAD
 ## 4.2 combineReducers
 调用方式：combineReducers(reducers)
 
@@ -364,6 +403,90 @@ compose用来实现从右到左组合传入的多个函数，它做的只是让�
   const store = createStore(counter);
   //Counter组件
   class Counter extends Component{
+=======
+代码清单：reducer/counter.js
+```javascript
+  export default function counter(state = 0, action) {
+    switch (action.type) {
+    case 'INCREMENT':
+      return state + 1
+    case 'DECREMENT':
+      return state - 1
+    default:
+      return state
+    }
+  }
+```
+
+代码清单：reducers/index.js
+```javascript
+  import { combineReducers } from 'redux'
+  import todos from './todos'
+  import counter from './counter'
+  export default combineReducers({
+    todos,
+    counter
+  })
+```
+
+代码清单：App.js
+```javascript
+  import { createStore } from 'redux'
+  import reducer from './reducer/index.js'
+
+  let store = createStore(reducer)
+  console.log('当前的 state :', store.getState())
+
+  store.dispatch({
+    type: 'ADD_TODO',
+    text: 'Use Redux'
+  })
+  store.dispatch({
+    type: 'INCREMENT'
+  })
+  console.log('改变后的 state :', store.getState())
+```
+
+## 4.3 applyMiddleware
+调用方式：applyMiddleware(...middlewares)
+
+使用包含自定义功能的 middleware 来扩展 Redux 是一种推荐的方式。Middleware 可以让你包装 store 的 dispatch 方法来达到你想要的目的。同时， middleware 还拥有“可组合”这一关键特性。多个 middleware 可以被组合到一起使用，形成 middleware 链。其中，每个 middleware 都不需要关心链中它前后的 middleware 的任何信息
+
+## 4.4 bindActionCreators
+调用方式：bindActionCreators(actionCreators, dispatch)
+
+惟一使用 bindActionCreators 的场景是当你需要把 action creator 往下传到一个组件上，却不想让这个组件觉察到 Redux 的存在，而且不希望把 Redux store 或 dispatch 传给它。
+
+## 4.5 compose
+调用方式：compose(...functions)
+
+compose 用来实现从右到左来组合传入的多个函数，它做的只是让你不使用深度右括号的情况下来写深度嵌套的函数，仅此而已。
+
+# 5 使用React-redux连接react和redux
+## 5.1 没有React-redux的写法
+封装一个组件，将组件和Redux做基本的组合
+```javascript
+  import { createStore } from 'redux';
+  import React, { Component } from 'react';
+  import ReactDOM from 'react-dom';
+
+  // reducer 纯函数，具体的action执行逻辑
+  const counter = (state = 0, action) => {
+    switch (action.type) {
+        case 'INCREMENT':
+          return state + 1;
+        case 'DECREMENT':
+          return state - 1;
+        default:
+          return state;
+    }
+  }
+
+  const store = createStore(counter);
+
+  // Counter 组件
+  class Counter extends Component {
+>>>>>>> b872c55882669de3f10e29ad039674d345d37f2e
     render(){
       return (
         <div>
@@ -374,6 +497,7 @@ compose用来实现从右到左组合传入的多个函数，它做的只是让�
       )
     }
   }
+<<<<<<< HEAD
   const PureRender = () => {
     ReactDOM.render(
       <Counter
@@ -390,3 +514,404 @@ compose用来实现从右到左组合传入的多个函数，它做的只是让�
 
 ## 5.2 React-redux提供的contect和Provider
 <Provider store>使组件层级中的connect()方法都能够获得Redux store.正常情况下，你的根组件应该嵌套在'<Provider>'中才能使用connect()方法。
+=======
+
+  const PureRender = () => {
+    ReactDOM.render(
+        <Counter
+          value={store.getState()}
+          onIncrement={ () => store.dispatch({type: "INCREMENT"}) }
+          onDecrement={ () => store.dispatch({type: "DECREMENT"}) }
+        />, document.getElementById('app')
+    );
+  }
+
+  // store subscribe 订阅或是监听view（on）
+  store.subscribe(PureRender)
+  PureRender()
+```
+
+## 5.2 React-redux提供的connect和Provider
+<Provider store>使组件层级中的connect()方法都能够获得Redux store.正常情况下，你的根组件应该嵌套在<Provider>中才能使用connect()方法。
+```javascript
+  ReactDOM.render(
+    {/*  使组件层级中的 connect() 方法都能够获得 Redux store */}
+    <Provider store={store}>
+      {/* 这里传入的组件MyRootComponent是组件层级的根组件 */}
+      <MyRootComponent />
+    </Provider>
+  )
+```
+
+connect([mapStateToProps],[mapDispatchToProps],[mergeProps],[options]) connect方法是来连接React组件与Redux store,连接操作不会改变原来的组件类，反而返回一个新的已与Redux store连接的组件类。
+
+使用React-redux的一个简单完整示例
+```javascript
+  import React, { Component, PropTypes} from 'react';
+  import ReactDOM from 'react-dom';
+  import { createStore } from 'redux';
+  import { Provider, connect} from 'react-redux';
+  //这是一个展示型组件counter
+  class Counter extends Component {
+    render(){
+      const { value, onIncrementClick} = this.props;
+      return (
+        <div>
+          <span>{value}</span>
+          <button onClick={onIncrementClick}>点我加一</button>
+        </div>
+      )
+    }
+  }
+  Counter.propTypes = {
+    value: PropTypes.number.isRequired,
+    onIncrementClick: PropTypes.func.isRequired
+  }
+  //Action
+  const increaseAction = {type: 'increase'}
+  //Reducer
+  function counter(state={count:0},action){
+    let count = state.count;
+    switch(action.type){
+      case 'increase':
+        return {count:count + 1}
+      default:
+        return count
+    }
+  }
+  //store
+  let store = createStore(counter);
+  //Map Redux state to component props
+  function mapStateToProps(state){
+    console.log(state);
+    //这里拿到的state就是store里面给的state
+    return {
+      value: state.count
+    }
+  }
+
+  //Map Redux actions to component props
+  function mapDispatchToProps(dispatch){
+    //dispatch
+    return {
+      onIncrementClick: () => dispatch(increaseAction);
+    }
+  }
+
+  class App extends Component{
+    render(){
+      //store里的state经过connect连接后给了根组件的props
+      console.log(this.prps);
+      return (
+        <div>
+          <h1>react-redux</h1>
+          <Counter {...this.props} />
+        </div>
+      )
+    }
+  }
+  //Connected Component
+  let RootApp = connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )(App)
+  ReactDOM.render(
+    <Provider store={store}>
+      <RootApp />
+    </Provider>,
+    document.getElementById('app')
+  )
+```
+实际应用中，connect这个部分会比较复杂。
+
+# 6. 一步步开发一个TODO应用
+## 6.1 入口文件
+index.js
+```javascript
+  import React from 'react';
+  import {render} from 'react-dom';
+  import {createStore} from 'redux';
+  import {Provider} from 'react-redux';
+  import App from './containers/App';
+  import todoApp from './reducers';
+
+  let store = createStore(todoApp);
+
+  let rootElement = document.getElementById('app');
+  render(
+    <Provider store={store}>
+      <App />
+    </Provider>,
+    rootElement
+  )
+```
+
+## 6.2 Action创建函数和常量
+action.js
+```javascript
+  //action类型
+  export const ADD_TODO = 'ADD_TODO';
+  export const COMPLETE_TODO = 'COMPLETE_TODO';
+  export const SET_VISIBILITY_FILTER = 'SET_VISIBILITY_FILTER';
+  //其他常量
+  export const VisibilityFilter = {
+    SHOW_ALL: 'SHOW_ALL',
+    SHOW_COMPLETED: 'SHOW_COMPLETED',
+    SHOW_ACTIVE: 'SHOW_ACTIVE'
+  }
+  //action创建函数
+  export function addTodo(text){
+    return {type: ADD_TODO,text}
+  }
+  export function completeTodo(index){
+    return {type: COMPLETE_TODO,index}
+  }
+  export function setVisibilityFilter(filter){
+    return {type: SET_VISIBILITY_FILTER,filter}
+  }
+```
+
+## 6.3 Reducers
+reducers.js
+```javascript
+  import {combineReducers} from 'redux';
+  import {ADD_TODO, COMPLETE_TODO, SET_VISIBILITY_FILTER, VisibilityFilter} from './actions';
+  const {SHOW_ALL} = VisibilityFilter;
+
+  function visibilityFilter(state = SHOW_ALL, action){
+    switch(action.type){
+      case SET_VISIBILITY_FILTER:
+        return action.filter
+      default:
+        return state
+    }
+  }
+
+  function todos(state=[],action){
+    switch(action.type){
+      case ADD_TODO:
+        return [
+          ...state,
+          {
+            text:action.text,
+            completed: false
+          }
+        ]
+      case COMPLETE_TODO:
+        return [
+          ...state.slice(0,action.index),
+          Object.assign({},state[action.index],{
+            completed:true
+          }),
+          ...state.slice(action.index + 1)
+        ]
+      default:
+        return state
+    }
+  }
+
+  const todoApp = combineReducers({
+    visibilityFilter,
+    todos
+  })
+
+  export default todoApp
+```
+
+## 6.4 容器组件
+containers/App.js
+```javascript
+  import React, {Component, PropTypes} from 'react';
+  import {connect} from 'react-redux';
+  import {addTodo, completeTodo, setVisibilityFilter, VisibilityFilter} from '../actions';
+  import AddTodo from '../components/AddTodo';
+  import TodoList from '../components/TodoList';
+  import Footer from '../components/Footer';
+
+  class App extends Component {
+    render(){
+      //Injected by connect() call
+      const {dispatch, visibleTodos, visibilityFilter } = this.props;
+      return (
+        <div>
+          <AddTodo onAddClick={text =>
+            dispatch(addTodo(text))
+          } />
+          <TodoList
+            todos={visibleTodos}
+            onAddClick={index =>
+              dispatch(completeTodo(index))
+          } />
+          <Footer
+            filter={visibilityFilter}
+            onFilterChange={nextFilter =>
+              dispatch(setVisibilityFilter(nextFilter))
+          } />
+        </div>
+      )
+    }
+  }
+
+  App.propTypes = {
+    visibleTodos: PropTypes.arrayOf(PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired
+    }).isRequired).isRequired,
+    visibilityFilter: PropTypes.oneOf({
+      'SHOW_ALL',
+      'SHOW_COMPLETED',
+      'SHOW_ACTIVE'
+    }).isRequired
+  }
+
+  function selectTodos(todo,filter){
+    switch(filter){
+      case visibilityFilters.SHOW_ALL:
+        return todos
+      case VisibilityFilters.SHOW_COMPLETED:
+        return todos.filter(todo => todo.completed)
+      case VisibilityFilters.SHOW_ACTIVE:
+        return todos.filter(todo => !todo.completed)
+    }
+  }
+
+  function select(state){
+    return {
+      visibleTodos: selectTodos(state.todos,state.visibilityFilter),
+      visibilityFilter: state.visibilityFilter
+    }
+  }
+  // 包装 component ，注入 dispatch 和 state 到其默认的 connect(select)(App) 中；
+  export default connect(select)(App)
+```
+
+## 6.5 展示组件
+components/AddTodo.js
+```javascript
+  import React, {Component, PropTypes} from 'react';
+
+  export default class AddTodo extends Component {
+    render() {
+      return (
+        <div>
+          <input type='text' ref='input' />
+          <button onClick={(e) => this.handleClick(e)}>
+            Add
+          </button>
+        </div>
+      )
+    }
+
+    handleClick(e) {
+      const node = this.refs.input
+      const text = node.value.trim()
+      this.props.onAddClick(text)
+      node.value = ''
+    }
+  }
+
+  AddTodo.propTypes = {
+    onAddClick: PropTypes.func.isRequired
+  }
+```
+
+components/Footer.js
+```javascript
+  import React, { Component, PropTypes } from 'react'
+
+  export default class Footer extends Component {
+  renderFilter(filter, name) {
+    if (filter === this.props.filter) {
+      return name
+    }
+
+    return (
+      <a href='#' onClick={e => {
+        e.preventDefault()
+        this.props.onFilterChange(filter)
+      }}>
+        {name}
+      </a>
+    )
+  }
+
+  render() {
+    return (
+      <p>
+        Show:
+        {' '}
+        {this.renderFilter('SHOW_ALL', 'All')}
+        {', '}
+        {this.renderFilter('SHOW_COMPLETED', 'Completed')}
+        {', '}
+        {this.renderFilter('SHOW_ACTIVE', 'Active')}
+        .
+      </p>
+    )
+  }
+}
+
+  Footer.propTypes = {
+    onFilterChange: PropTypes.func.isRequired,
+    filter: PropTypes.oneOf([
+      'SHOW_ALL',
+      'SHOW_COMPLETED',
+      'SHOW_ACTIVE'
+    ]).isRequired
+  }
+```
+
+components/Todo.js
+```javascript
+  import React, { Component, PropTypes } from 'react'
+
+  export default class Todo extends Component {
+    render() {
+      return (
+        <li
+          onClick={this.props.onClick}
+          style={{
+            textDecoration: this.props.completed ? 'line-through' : 'none',
+            cursor: this.props.completed ? 'default' : 'pointer'
+          }}>
+          {this.props.text}
+        </li>
+      )
+    }
+  }
+
+  Todo.propTypes = {
+    onClick: PropTypes.func.isRequired,
+    text: PropTypes.string.isRequired,
+    completed: PropTypes.bool.isRequired
+  }
+```
+
+components/TodoList.js
+```javascript
+  import React, { Component, PropTypes } from 'react'
+  import Todo from './Todo'
+
+  export default class TodoList extends Component {
+    render() {
+      return (
+        <ul>
+          {this.props.todos.map((todo, index) =>
+            <Todo {...todo}
+                  key={index}
+                  onClick={() => this.props.onTodoClick(index)} />
+          )}
+        </ul>
+      )
+    }
+  }
+
+  TodoList.propTypes = {
+    onTodoClick: PropTypes.func.isRequired,
+    todos: PropTypes.arrayOf(PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired
+    }).isRequired).isRequired
+  }
+```
+>>>>>>> b872c55882669de3f10e29ad039674d345d37f2e
