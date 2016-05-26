@@ -6,6 +6,8 @@ tags:
   - Redux
 categories: 转载笔记
 ---
+> 文章转载自[Redux快速上手](http://guoyongfeng.github.io/idoc/html/React%E8%AF%BE%E7%A8%8B%E4%B8%93%E9%A2%98/Redux%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B.html)，仅供学习和参考
+
 在实际的项目中，面对复杂业务逻辑的挑战，如何清晰高效的管理应用内的数据流动成为了关键。
 
 Flux思想已经在提出后得到逐步推广，并广泛应用到实际项目中。facebook的flux实现，开源社区的reflux、redux等类库开始涌现并得到了广大开发者的认同和使用。
@@ -680,100 +682,100 @@ components/AddTodo.js
 
 components/Footer.js
 ```javascript
-import React, { Component, PropTypes } from 'react'
+  import React, { Component, PropTypes } from 'react'
 
-export default class Footer extends Component {
-renderFilter(filter, name) {
-  if (filter === this.props.filter) {
-    return name
+  export default class Footer extends Component {
+  renderFilter(filter, name) {
+    if (filter === this.props.filter) {
+      return name
+    }
+
+    return (
+      <a href='#' onClick={e => {
+        e.preventDefault()
+        this.props.onFilterChange(filter)
+      }}>
+        {name}
+      </a>
+    )
   }
 
-  return (
-    <a href='#' onClick={e => {
-      e.preventDefault()
-      this.props.onFilterChange(filter)
-    }}>
-      {name}
-    </a>
-  )
+  render() {
+    return (
+      <p>
+        Show:
+        {' '}
+        {this.renderFilter('SHOW_ALL', 'All')}
+        {', '}
+        {this.renderFilter('SHOW_COMPLETED', 'Completed')}
+        {', '}
+        {this.renderFilter('SHOW_ACTIVE', 'Active')}
+        .
+      </p>
+    )
+  }
 }
 
-render() {
-  return (
-    <p>
-      Show:
-      {' '}
-      {this.renderFilter('SHOW_ALL', 'All')}
-      {', '}
-      {this.renderFilter('SHOW_COMPLETED', 'Completed')}
-      {', '}
-      {this.renderFilter('SHOW_ACTIVE', 'Active')}
-      .
-    </p>
-  )
-}
-}
-
-Footer.propTypes = {
-onFilterChange: PropTypes.func.isRequired,
-filter: PropTypes.oneOf([
-  'SHOW_ALL',
-  'SHOW_COMPLETED',
-  'SHOW_ACTIVE'
-]).isRequired
-}
+  Footer.propTypes = {
+    onFilterChange: PropTypes.func.isRequired,
+    filter: PropTypes.oneOf([
+      'SHOW_ALL',
+      'SHOW_COMPLETED',
+      'SHOW_ACTIVE'
+    ]).isRequired
+  }
 ```
 
 components/Todo.js
 ```javascript
-import React, { Component, PropTypes } from 'react'
+  import React, { Component, PropTypes } from 'react'
 
-export default class Todo extends Component {
-render() {
-  return (
-    <li
-      onClick={this.props.onClick}
-      style={{
-        textDecoration: this.props.completed ? 'line-through' : 'none',
-        cursor: this.props.completed ? 'default' : 'pointer'
-      }}>
-      {this.props.text}
-    </li>
-  )
-}
-}
+  export default class Todo extends Component {
+    render() {
+      return (
+        <li
+          onClick={this.props.onClick}
+          style={{
+            textDecoration: this.props.completed ? 'line-through' : 'none',
+            cursor: this.props.completed ? 'default' : 'pointer'
+          }}>
+          {this.props.text}
+        </li>
+      )
+    }
+  }
 
-Todo.propTypes = {
-onClick: PropTypes.func.isRequired,
-text: PropTypes.string.isRequired,
-completed: PropTypes.bool.isRequired
-}
+  Todo.propTypes = {
+    onClick: PropTypes.func.isRequired,
+    text: PropTypes.string.isRequired,
+    completed: PropTypes.bool.isRequired
+  }
 ```
 
 components/TodoList.js
 ```javascript
-import React, { Component, PropTypes } from 'react'
-import Todo from './Todo'
+  import React, { Component, PropTypes } from 'react'
+  import Todo from './Todo'
 
-export default class TodoList extends Component {
-render() {
-  return (
-    <ul>
-      {this.props.todos.map((todo, index) =>
-        <Todo {...todo}
-              key={index}
-              onClick={() => this.props.onTodoClick(index)} />
-      )}
-    </ul>
-  )
-}
-}
+  export default class TodoList extends Component {
+    render() {
+      return (
+        <ul>
+          {this.props.todos.map((todo, index) =>
+            <Todo {...todo}
+                  key={index}
+                  onClick={() => this.props.onTodoClick(index)} />
+          )}
+        </ul>
+      )
+    }
+  }
 
-TodoList.propTypes = {
-onTodoClick: PropTypes.func.isRequired,
-todos: PropTypes.arrayOf(PropTypes.shape({
-  text: PropTypes.string.isRequired,
-  completed: PropTypes.bool.isRequired
-}).isRequired).isRequired
-}
+  TodoList.propTypes = {
+    onTodoClick: PropTypes.func.isRequired,
+    todos: PropTypes.arrayOf(PropTypes.shape({
+      text: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired
+    }).isRequired).isRequired
+  }
 ```
