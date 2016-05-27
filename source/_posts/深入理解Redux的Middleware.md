@@ -133,3 +133,111 @@ Middleware:: next -> action -> retVal
 `
   return (next) => (reducer,initialStare) => {...}
 `
+next参数是一个被用来创建store的函数，你可以看一下createStore.js源码的实现细节。最后这个函数返回一个类似createStore的函数，不同的是它包含一个有中间件加工过的dispatch实现。
+
+接下来我们通过调用next拿到store对象。我们用一个变量保存原始的dispatch函数，最后我们申明一个数组来存储我们创建的中间件链：
+```javascript
+  var store = next(reducer, initialStare);
+  var dispatch = store.dispatch;
+  var chain = [];
+```
+
+接下来的代码将getState 和调用原始的dispatch函数注入给所有的中间件：
+```javascript
+  var middlewareAPI = {
+    getState: store.getState,
+    dispatch: (action) => dispatch(action)
+  };
+
+  chain = middlewares.map(middleware => middleware(middlewareAPI));
+```
+
+然后我们根据中间件链创建一个加工过的dispatch实现：
+```javascript
+  dispatch = compose(...chain, store.dispatch);
+```
+
+最精妙的地方就是上面这行，Redux提供的compose工具函数组合了我们的中间件链，compose实现如下：
+```javascript
+  export default function compose(...funcs){
+    return funcs.reduceRight((compose, f) => f(compose));
+  }
+```
+
+碉堡了！上面的代码展示了中间件调用链是如何创建出来的。中间件调用链的顺序很重要，调用链类似下面这样：
+```javascript
+  middlewareI(middlewareJ(middlewareK(store.dispatch)))(action)
+```
+
+现在我们知道为啥我们要掌握复合函数和珂理化概念了。最后我们只需要将新的store和调整过的dispatch函数返回即可：
+```javascript
+  return {
+    ...store,
+    dispatch
+  };
+```
+
+上面这种写法的意思是返回一个对象，该对象拥有store的所有属性，并增加一个dispatch函数属性，store里自带的那个原始dispatch函数会被覆盖。这种写法会被Babel转化成：
+```javascript
+  return _extends({}, store, {dispatch : _dispatch});
+```
+
+现在让我们将我们的logger中间件注入到dispatch中：
+```javascript
+  import { createStore, applyMiddleware } from 'redux';
+  import loggerMiddleware from 'logger';
+  import rootReducer from '../reducers';
+
+  const createStoreWithMiddleware = applyMiddleware(loggerMiddleware)(createStore);
+
+  export default function configureStore(initialStare){
+    return createStoreWithMiddleware(rootReducer, initialStare);
+  }
+
+  const store = configureStore();
+```
+
+# 6. 异步中间件
+我们已经会写基础的中间件了，我们就要玩更高深的，整个能处理异步action的中间件咋样？让我们来看一下redux-thunk的更多细节。我们假设有一个包含异步请求的action，如下：
+```javascript
+  function fetchQuote(symbol){
+    requestQuote(symbol);
+    return fetch(`http://www.google.com/finance/info?q=${symbol}`)
+            .then(req => req.json())
+            .then(json => showCurrentQuote(symbol,json));
+  }
+```
+
+上面的代码并没有明显的调用dispatch来分派一个返回promise的action，我们需要使用redux-thunk中间件来延迟dispatch的执行：
+```javascript
+  function fetchQuote(symbol){
+    return dispatch => {
+      dispatch(requestQuote(symbol));
+      return fetch(`http://www.google.com/finance/info?${symbol}`)
+              .then(req => req.json())
+              .then(json => dispatch(showCurrentQuote(symbol, json)));
+    }
+  }
+```
+
+注意这里的dispatch和getState是由applyMiddleware函数注入进来的。现在我们就可以分派最终得到的action对象到store的reducers了。下面是类似redux-thunk的实现：
+```javascript
+  export default function thunkMiddleware({ dispatch, getState}){
+    return next => action => typeof action === 'function' ? action(dispatch,getState) : next(action);
+  }
+```
+
+这个和你之前看到的中间件没什么太大不同。如果得到的action是个函数，就用dispatch和getState当作参数来调用它，否则就直接分派给store。你可以看一下Redux提供的更详细的异步示例。另外还有一个支持promise的中间件是redux-promise。
+
+# 7. 使用middleware实现异步action和异步数据流
+redux的生态在持续的完善，其中就有不少的middleware供开发者使用，同时大家也可以实现自己的middleware。
+现在让我们来使用以下两个中间件来完成一个示例：
+
+ - redux-thunk -- Redux-Thunk可以让你的action creator返回一个function而不是action。这可以用于延迟dispatch一个action或是在特定条件下dispatch才触发。他的内部函数接受store的dispatch和getState方法作为参数。
+ - redux-logger -- Redux-Logger的用处很明显，就是用于记录所有action和下一次state的日志。
+ - isomorphic-fetch: 用于ajax请求数据
+
+# 总结
+希望你已经了解了关于Redux中间件的足够信息，我也希望你掌握了更多的关于函数式编程的知识。我不断的尝试更多更好的函数式编程方法，尽管一开始并不容易，你需要不断的学习和尝试来参悟它的精髓。如果你完全掌握了这篇文章交给你的，那么你已经拥有了足够的信心去投入更多的学习当中。
+
+最后，千万别使用那些你还没有搞明白的第三方类库，你必须确定它会给你的项目带来好处。掌握它的一个好方法就是去阅读它的源码，你将会学到新的编程技术，淘汰那些老的解决方案。将一个工具引入你的项目前，你有责任搞清楚它的细节。
