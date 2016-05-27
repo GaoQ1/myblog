@@ -115,3 +115,21 @@ Middleware:: next -> action -> retVal
   }
 ```
 注意，我们的createLogger接受的getState方法是由applyMiddleware.js注入进来的。使用它可以在内部的闭包中得到应用的当前状态。最后我们返回调用next创建的函数作为结果。next方法用于维护中间件调用链和dispatch，它返回一个接受action对象的柯里化函数，接受的action对象可以在中间件中被修改，再传递给下一个被调用的中间件，最终dispatch会使用中间件修改后的action来执行。
+
+我们来看看上面的logger中间件的业务流程：
+1. 得到当前的应用状态
+2. 将action指派给下一个中间件
+3. 调用链下游的中间件全部被执行
+4. store中的匹配reducer被执行
+5. 此时得到新的应用状态
+
+# 5. 剖析applyMiddleware.js
+下面让我们一步步分析applyMiddleware.js源码，applyMiddleware可能应该起一个更好一点的名字，applyMiddlewareToStore。
+首先我们看一下方法的签名：
+`
+  export default function applyMiddleware(...middlewares)
+`
+注意这里有个很有趣的写法，参数：...middlewares，这么定义允许我们调用时传入任意个数的中间件函数作为参数。接下来函数将返回一个接受next作为参数的函数：
+`
+  return (next) => (reducer,initialStare) => {...}
+`
