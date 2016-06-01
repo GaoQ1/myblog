@@ -230,3 +230,53 @@ const声明创建一个只读的常量。这不意味着常量指向的值不可
   // 对象属性并不在保护的范围内，下面这个声明会成功执行
   MY_OBJECT.key = "otherValue";
 ```
+
+# 箭头函数
+箭头函数就是个简写形式的函数表达式，并且它拥有词法作用域的this值（即不会新产生自己作用域下的this,arguments,super和new.target等对象）。此外，箭头函数时匿名的。
+## 基本语法
+```javascript
+  (param1,param2,...,paramN) => { statements }
+  (param1,param2,...,paramN) => expression
+          // equivalent to => { return expression; }
+
+  //如果只有一个参数，圆括号是可选的
+  (singleParam) => { statements }
+  singleParam => { statements }
+
+  //无参数的函数需要使用圆括号
+  () => { statements }
+```
+
+## 高级语法
+```javascript
+  //返回对象字面量时应该用圆括号将其包起来：
+  params => {foo:bar}
+
+  //支持Rest parameters 和 default parameters:
+  (param1,param2,...rest) => { statements }
+  (param1 = defaultValue1,param2,...,paramN = defaultValueN) => { statements }
+
+  //Destructring within the parameter list is also supported
+  var f = ([a,b] = [1,2],{x:c} = {x:a+b}) => a + b +c;
+  f(); //6
+```
+
+## 描述
+箭头函数的引用有两个方面的影响：一是更简短的函数书写，二是对this的词法解析。
+
+### 更短的函数
+在一些函数式编程模式里，更短的函数书写方式很受欢迎。试比较：
+```javascript
+  var a = [
+    "Hydrogen",
+    "Helium",
+    "Lithium",
+    "Beryl­lium"
+  ];
+  var a2 = a.map(function(s){return s.length});
+
+  var a3 = a.map(s => s.length);
+```
+
+### this的词法
+在箭头函数出现之前，每个新定义的函数都有其自己的this值（例如，构造函数的this指向了一个新的对象；严格模式下的函数的this值为undefined；如果函数是作为对象的方法被调用的，则其this指向了那个调用它的对象）。在面向对象风格的编程中，这被证明是非常恼人的事情。
