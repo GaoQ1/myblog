@@ -149,4 +149,183 @@ categories: 转载笔记
 
 连接操作不会改变原来的组件类，反而返回一个新的已与 Redux store 连接的组件类。
 
-http://cn.redux.js.org/docs/react-redux/api.html
+## 参数
+ - [mapStateToProps(state,[ownProps]): stateProps](Function): 如果定义该参数，组件将会监听Redux store的变化。任何时候，只要Redux store发生变化，mapStateToProps函数就会被调用。该回调函数必须返回一个纯对象，这个对象会与组件的props合并。如果你省略了这个参数，你的组件将不会监听Redux store。如果指定了该回调函数中的第二个参数ownProps，则该参数的值为传递到组件的props，而且只要组件接收到新的props，mapStateToProps也会被调用。
+ - [mapDispatchToProps(dispatch,[ownProps]): dispatchProps](Object or Function)：如果传递的是一个对象，那么每个定义在该对象的函数都将被当作Redux action creator，而且这个对象会与Redux store绑定在一起，其中所定义的方法名将作为属性名，合并到组件的props中。如果传递的是一个函数，该函数将接收一个dispatch函数，然后由你来决定如何返回一个对象，这个对象通过dispatch函数与action creator以某种方式绑定在一起（提示：你也许会用到Redux的辅助函数bindActionCreators()）.如果你省略这个mapDispatchToProps参数，默认情况下，dispatch会注入到你的组件props中。如果你指定了该回调函数中第二个参数ownPros，该参数的值未传递到组件的props，而且只要组件接收到新props，mapDispatchToProps也会被调用。
+ - [mergeProps(stateProps,dispatchProps,ownPros): props](Function):如果指定了这个参数，mapStateToProps()与mapDispatchToProps()的执行结果和组件自身的props将传入到这个回调函数中。该回调函数返回的对象将作为props传递到被包装的组件中。你也许可以用这个回调函数，根据组件的props来筛选部分的state数据，或者把props中的某个特定变量与action creator绑定在一起。如果你省略这个参数，默认情况下返回Object.assign({},ownPros,stateProps,dispatchProps)的结果。
+ - [options](Object) 如果指定这个参数，可以定制connector的行为。
+  - [pure = true](Boolean): 如果为true,connector将执行shouldComponentUpdate并且浅对比mergeProps的结果，避免不必要的更新，前提是当前组件是一个"纯组件"，它不依赖于任何的输入或state而只依赖于props和Redux store的state。默认值为true。
+  - [withRef = false](Boolean): 如果为true，connector会保存一个对被包装组件实例的引用，该引用通过getWrappedInstance()方法获得。默认值为false
+
+## 返回值
+根据配置信息，返回一个注入了state和action creator的React组件。
+
+## 静态属性
+ - WrappedComponent(Component): 传递到connect()函数的原始组件类。
+
+## 静态方法
+组件原来的静态方法都被提升到被包装的React组件。
+
+## 实例方法
+getWrappedInstance(): ReactComponent
+仅当connect()函数的第四个参数options设置了{withRef: true}才返回被包装的组件示例。
+
+## 备注
+ - 函数将被调用两次。第一次是设置参数，第二次是组件与React store连接：connect(mapStateToProps,mapDispatchToProps,mergeProps)(MyComponent).
+ - connect函数不会修改传入的React组件，返回的是一个新的已与Redux store连接的组件，而且你应该使用这个新组件。
+ - mapStateToProps函数接收整个Redux store的state作为props，然后返回一个传入到组件props的对象。该函数被称之为selector。参考使用reselect高效地组合多个selector，并对收集到的数据进行处理。
+
+## Example例子
+**只注入dispatch，不监听store**
+`export default conenct(){TodoApp};`
+
+**注入dispatch和全局state**
+> 不要这样做！这会导致每次action都触发整个TodoApp重新渲染，你做的所有性能优化都将付之东流。最好在多个组件上使用connect()，每个组件只监听它所关联的部分state.  
+
+`export default connect(state => state)(TodoApp)`
+
+**注入dispatch和todos**
+```javascript
+  function mapStateToProps(state){
+    return {
+      todos: state.todos
+    };
+  }
+
+  export default conenct(mapStateToProps)(TodoApp);
+```
+
+**注入todos和所有action creator(addTodo,completeTodo,...)**
+```javascript
+  import * as actionsCreators from './actionsCreators';
+
+  function mapStateToProps(state){
+    return {
+      todos: state.todos
+    }
+  }
+
+  export default connect(mapStateToProps,actionsCreators)(TodoApp);
+```
+
+**注入todos并把所有action creator作为actions属性也注入组件中**
+```javascript
+  import * as actionsCreators from './actionsCreators';
+  import { bindActionCreators } from 'redux';
+
+  function mapStateToProps(state){
+    return {todos: state.todos};
+  }
+
+  function mapDispatchToProps(dispatch){
+    return {actions: bindActionCreators(actionsCreators,dispatch)};
+  }
+
+  export dfault connect(mapStateToProps,mapDispatchToProps)(TodoApp)
+```
+
+**注入todos和指定的action creator(addTodo)**
+```javascript
+  import { addTodo } from './actionsCreators';
+  import { bindActionCreators } from 'redux';
+
+  function mapStateToProps(state){
+    return {
+      todo: state.todos
+    }
+  }
+
+  function mapDispatchToProps(dispatch){
+    return bindActionCreators({addTodo},dispatch);
+  }
+
+  export default connect(mapStateToProps,mapDispatchToProps)(TodoApp);
+```
+
+**注入todos并把todoActionCreators作为todoActions属性、counterActionCreators作为counterActions属性注入到组件中**
+```javascript
+  import * as todoActionCreators from './todoActionCreators';
+  import * as counterActionCreators from './counterActionCreators';
+  import { bindActionCreators } from 'redux';
+
+  function mapStateToProps(state){
+    return {todos: state.todo};
+  }
+
+  function mapDispatchToProps(dispatch){
+    return {
+      todoActions: bindActionCreators(todoActionCreators,dispatch),
+      counterActions: bindActionCreators(counterActionCreators,dispatch)
+    };
+  }
+
+  export default connect(mapStateToProps, mapDispatchToProps)(TodoApp);
+```
+
+**注入todos并把todoActionCreators与counterActionCreators一同作为actions属性注入到组件中**
+```javascript
+  import * as todoActionCreators from './todoActionCreators';
+  import * as counterActionCreators from './counterActionCreators';
+  import { bindActionCreators } from 'redux';
+
+  function mapStateToProps(state){
+    return { todos: state.todos };
+  }
+
+  function mapDispatchToProps(dispatch){
+    return {
+      actions: bindActionCreators(Object.assign({},todoActionCreators,counterActionCreators),dispatch)
+    }
+  }
+
+  export default connect(mapStateToProps,mapDispatchToProps)(TodoApp);
+```
+
+**注入todos并把所有的todoActionCreators和counterActionCreators作为props注入到组件中**
+```javascript
+  import * as todoActionCreators from './todoActionCreators';
+  import * as counterActionCreators from './counterActionCreators';
+  import { bindActionCreators } from 'redux';
+
+  function mapStateToProps(state){
+    return {todos: state.todo}
+  }
+
+  function mapDispatchToProps(dispatch){
+    return bindActionCreators(Object.assign({}, todoActionCreators,counterActionCreators),dispatch);
+  }
+
+  export default connect(mapStateToProps,mapDispatchToProps)(TodoApp);
+```
+
+**根据组件的props注入特定用户的todos**
+```javascript
+  import * as actionsCreators from './actionsCreators';
+
+  function mapStateToProps(state,ownProps){
+    return {todos: state.todos[ownProps.userId]};
+  }
+
+  export default connect(mapStateToProps)(TodoApp);
+```
+
+**根据组件的props注入特定用户的todos并把props.userId传入到action中**
+```javascript
+  import * as actionsCreators from './actionsCreators';
+
+  function mapStateToProps(state){
+    return {todos: state.todos};
+  }
+
+  function mergeProps(stateProps,dispatchProps,ownProps){
+    return Object.assign({},ownProps,{
+      todos: stateProps.todos[ownProps.userId],
+      addTodo: (text) => dispatchProps.addTodo(ownProps.userId,text)
+    });
+  }
+
+  export default connect(mapStateToProps,actionsCreators,mergeProps)(TodoApp);
+```
+
+# 排错
+这里会列出常见的问题和对应的解决方案。
