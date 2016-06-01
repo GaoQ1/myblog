@@ -280,3 +280,148 @@ const声明创建一个只读的常量。这不意味着常量指向的值不可
 
 ### this的词法
 在箭头函数出现之前，每个新定义的函数都有其自己的this值（例如，构造函数的this指向了一个新的对象；严格模式下的函数的this值为undefined；如果函数是作为对象的方法被调用的，则其this指向了那个调用它的对象）。在面向对象风格的编程中，这被证明是非常恼人的事情。
+
+```javascript
+  function Person(){
+    //构造函数Person()定义的`this`就是新实例对象自己
+    this.age = 0;
+    setInterval(function growUp(){
+      //在非严格模式下，growUp()函数定义了其内部的`this`
+      //在全局对象，不同于构造函数Person()的定义的`this`
+      this.age ++;
+    },1000)
+  }
+
+  var p = new Person();
+```
+
+在ECMAScript3/5中，这个问题可以通过新增一个变量来指向期望的this对象，然后将该变量放到闭包中来解决。
+
+```javascript
+  function Person(){
+    var self = this;
+    self.age = 0;
+
+    setInterval(function growUp(){
+      //回调里面的`self`变量就指向了期望的那个对象了
+      self.age ++;
+    },1000)
+  }
+```
+除此之外，还可以使用bound function,把期望的this值传递给growUp()函数。
+
+箭头函数则会捕获其所在上下文的this值，作为自己的this值，因此下面的代码将如运行。
+
+```javascript
+  function Person(){
+    this.age = 0;
+
+    setInterval(() => {
+      this.age ++; //this正确地指向了person对象
+    },1000)
+  }
+```
+
+### 与strict mode的关系
+考虑到this是词法层面上的，严格模式中与this相关的规则都将被忽略。
+
+```javascript
+  var f = () => {
+    `use strict`;
+    return this;
+  }
+  f() === window //或全局对象
+```
+
+### 使用call或apply调用
+由于this已经在词法层面完成了bound，通过call()或apply()方法调用一个函数时，只是传入了参数而已，对this并没有影响。
+
+```javascript
+  var adder = {
+    base: 1,
+
+    add: function(a){
+      var f = v => v + this.base;
+      return f(a);
+    },
+
+    addThruCall: function(a){
+      var f = v => v + this.base;
+      var b = {
+        base : 2
+      };
+
+      return f.call(b,a)
+    }
+  };
+
+  console.log(adder.add(1)); //输出2
+  console.log(adder.addThruCall(1)); //仍然输出2
+```
+
+## arguments的词法
+箭头函数不会在其内部暴露arguments对象：arguments.length,arguments[0],arguments[1]等等，
+都不会指向箭头函数arguments，而是指向了箭头函数所在作用域的一个名为arguments的值（如果真的有的话，否则，就是undefined）
+
+```javascript
+  var arguments = 42;
+  var arr = () => arguments;
+
+  arr(); //42
+
+  function foo(){
+    var f = () => arguments[0];
+    return f(2);
+  }
+
+  foo(1); //1
+```
+箭头函数没有自己的arguments对象，不过大多数情况下，rest参数可以给出一个解决方案：
+
+```javascript
+  function foo(){
+    var f = (...args) => args[0];
+    return f(2);
+  }
+
+  foo(1); //2
+```
+
+### 使用yield关键字
+yield关键字通常不在箭头函数中使用。因此，箭头函数不能用作Generator函数
+
+### 返回对象字面量
+请牢记，用params => {object:literal}这种简单的语法返回一个对象字面量是行不通的：
+
+```javascript
+  var func = () => { foo: 1 };
+  //calling func() returns undefined!
+
+  var func = () => { foo: function(){} };
+  //SyntaxError: function statement required a name
+```
+
+这是因为花括号(即{})里面的代码被解析为声明序列了(例如，foo被认为是一个label，而非对象字面量里的键)。
+
+所以，记得用圆括号把对象字面量包起来：
+`var func = () => ({foo:1})`
+
+## 示例
+```javascript
+  //一个空箭头函数，返回undefined
+  let empty = () => {};
+
+  (() => "foobar")() //返回"foobar"
+
+  var simple = a => a > 15 ? 15 : a;
+  simple(16); //15
+  simple(10); //10
+
+  let max = (a,b) => a > b ? a : b;
+
+  //Easy array filtering, mapping, ...
+  var arr = [5,6,13,0,1,18,23];
+  var sum = arr.reduce((a,b) => a + b); //66
+  var even = arr.filter(v => v % 2 == 0); //[6,0,18]
+  var double = arr.map(v => v * 2); //[10,12,26,0,2,36,46]
+```
