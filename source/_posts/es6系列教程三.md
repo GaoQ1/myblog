@@ -225,19 +225,191 @@ ES6版本
 ```
 这段代码从user对象中提取并输出id、displayName和firstName。
 
+### 对象属性计算名和解构
+计算属性名，如object literals，可以被解构。
+```javascript
+  let key = "z";
+  let { [key]:foo } = { z:"bar" };
 
+  console.log(foo); //"bar"
+```
 
+# Default + Rest + Spread
+## 默认参数
+如果一个参数没有被传入对应的实参或者传入了undefined，则该形参会被赋一个默认值。现在我们可以在定义函数的时候指定参数的默认值，而不用像以前那样通过逻辑或操作符来达到目的了。
+```javascript
+  function sayHello(name){
+    //传统的指定默认参数的方式
+    var name = name || 'coffee';
+    console.log('Hello ' + name);
+  }
 
+  //运用ES6的默认参数
+  function sayHello2(name = 'coffee'){
+    console.log(`Hello ${name}`);
+  }
 
+  sayHello(); //输出：Hello coffee
+  sayHello('gaoquan'); //输出：Hello gaoquan
+  sayHello2(); //输出：Hello coffee
+  sayHello2('gaoquan'); //输出：Hello gaoquan
+```
 
+## Rest剩余参数
+在函数被调用时，剩余参数表示为一个数组名，该数组包含了那些没有对应形参的，长度不确定的剩余实参。
 
+### 语法
+```javascript
+  function (a,b, ...theArgs){
+    //...
+  }
+```
 
+### 简述
+如果一个函数的最后一个形参是以`...`为前缀的，则在函数被调用时，该形参会成为一个数组，数组中的元素都是传递给该函数的多出来的实参的值。
 
+在上例中，theArgs会包含传递给函数的从第三个实参开始到最后所有的实参(第一个实参映射到a，第二个实参映射到b).
 
+#### 剩余参数和arguments对象之间的区别
+剩余参数和arguments对象之间的区别主要有三个：
+ - 剩余参数只包含那些没有对应形参的实参，而arguments对象包含了传给函数的所有实参。
+ - arguments对象不是一个真实的数组，而剩余参数是真实的Array实例，也就是说你能够在它上面直接使用所有的数组方法，比如sort、forEach、pop
+ - arguments对象还有一些附加的属性(比如callee属性)
 
+#### arguments对象转换为剩余参数
+使用剩余参数可以避免将arguments转为数组的麻烦.
+```javascript
+  // 下面的代码模拟了剩余数组
+  function f(a,b){
+    var args = Array.prototype.slice.call(arguments,f.length);
+    // ...
+  }
 
+  //现在代码可以简化为这样了
+  function(a,b,...args){
+    // ...
+  }
+```
 
+### 例子
+因为theArgs是个数组，所以你可以使用length属性得到剩余参数的个数：
+```javascript
+  function fun1(...theArgs){
+    alert(theArgs.length);
+  }
 
+  fun1(); //弹出"0"，因为theArgs没有元素
+  fun1(5); //弹出"1"，因为theArgs只有一个元素
+  fun1(5,6,7); //弹出"3"，因为theArgs有三个元素
+```
 
+下例中，剩余参数包含了从第二个到最后的所有实参，然后用第一个实参依次乘以它们：
+```javascript
+  function multiply(multiplier,...theArgs){
+    return theArgs.map(function(element){
+      return multiplier * element;
+    });
+  }
 
------------------
+  var arr = multiply(2,1,2,3);
+  console.log(arr); //弹出“2,4,6”
+```
+
+下例演示了你可以在剩余参数上使用任意的数组方法，而arguments对象不可以：
+```javascript
+  function sortRestArgs(...theArgs){
+    var sortedArgs = theArgs.sort();
+    return sortedArgs;
+  }
+
+  alert(sortRestArgs(5,3,7,1)); //弹出 1,3,5,7
+
+  function sortArguments() {
+    var sortedArgs = arguments.sort();
+    return sortedArgs; // 不会执行到这里
+  }
+
+  alert(sortArguments(5,3,7,1)); // 抛出TypeError异常:arguments.sort is not a function
+```
+如果想在arguments对象上使用数组方法，你首先得将它转换为真实的数组，比如使用 `[].slice.call(arguments)`
+
+## 展开运算符
+### 概述
+展开运算符允许一个表达式在某处展开，在多个参数(用于函数调用)或者多个元素(用于数组字面量)或者多个变量(用于解构赋值)的地方就会这样。
+
+### 语法
+用于函数调用：
+```javascript
+  myFunction(...iterableObj);
+```
+
+用于数组字面量：
+```javascript
+  [...iterableObj,4,5,6]
+```
+
+用于解构赋值：
+```javascript
+  [a,b,...iterableObj] = [1,2,3,4,5];
+```
+
+### 例子
+#### 更好的apply方法
+**例子：** 目前为止，我们都是使用`Function.prototype.apply`方法来将一个数组展开成多个参数：
+```javascript
+  function myFunction(x,y,z){ }
+  var args = [0,1,2];
+  myFunction.apply(null,args);
+```
+
+如果使用了ES6的展开运算符，你可以这么写：
+```javascript
+  function myFunction(x,y,z){ }
+  var args = [0,1,2];
+  myFunction(...args);
+```
+
+还可以使用多个数组：
+```javascript
+  function myFunction(v,w,x,y,z){ }
+  var args = [0,1];
+  myFunction(-1,...args,2,...[3]);
+```
+
+#### 更强大的数组字面量
+**例子：** 目前为止，如果你想创建一个包含某些已有数组里的元素的新数组，通常会用到push、splice、concat等数组方法。有了新的展开运算符，可以这样写：
+```javascript
+  var parts = ['shoulder','knees'];
+  var lyrics = ['head', ...parts, 'and', 'toes']; // ["head", "shoulders", "knees", "and", "toes"]
+```
+和函数调用一样，数组字面量中也可以使用...多次。
+
+#### 配合new运算符
+**例子：** 在ES5中，我们无法同时使用new运算符合apply方法(apply方法调用[[Call]]而不是[[Construct]])。在ES6中，我们可以使用展开运算符，和普通的函数调用一样。
+```javascript
+  var dataFields = readDateFields(database);
+  var d = new Date(...dataFields);
+```
+
+#### 更好的push方法
+**例子：** 在ES5中，我们可以使用push方法将一个数组添加到另一个数组的末尾：
+```javascript
+  var arr1 = [0,1,2];
+  var arr2 = [3,4,5];
+  //将arr2中的所有元素添加到arr1中
+  Array.prototype.push.apply(arr1,arr2);
+```
+
+在ES6中，可以这么写：
+```javascript
+  var arr1 = [0, 1, 2];
+  var arr2 = [3, 4, 5];
+  arr1.push(...arr2);
+```
+
+#### 将类数组对象转换成数组
+展开操作可以将一个类数组对象中索引范围在[0,length)之间的所有属性的值添加到一个数组中，这样就可以得到一个真正的数组：
+```javascript
+  var nodeList = document.querySelectorAll('div');
+  var array = [...nodeList];
+```
