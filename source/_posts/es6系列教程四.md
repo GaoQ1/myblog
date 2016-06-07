@@ -284,3 +284,83 @@ WeakMap对象就是简单的键/值映射。但键只能是对象值，不可以
 # Proxy 和 Reflect
 ## 简介
 Proxy对象用来为基础操作(例如：属性查找、赋值、枚举、方法调用等)定义用户自定义行为。
+
+## 术语
+handler -- 包含traps的对象。
+traps -- 提供访问属性的途径，与操作系统中的traps定义相似
+target -- 被代理虚拟化的对象，这个对象常常用作代理的存储后端。关于对象不可拓展性和不可修改属性的不变量会被代理拦截。
+
+## 语法
+> var p = new Proxy(target, handler);  
+
+### 参数
+target -- 目标对象，可以是任意类型的对象，比如数组，函数，甚至是另外一个代理对象。
+handler -- 处理器对象，包含了一组代理方法，分别控制所生成代理对象的各种行为。
+
+## 方法
+Proxy.revocable() -- 创建一个可撤销的代理对象。
+
+## handler对象的方法
+handler是占位符对象，它包含代理的traps
+
+## 示例
+### 基础示例
+以下简单的例子中，当对象不存在属性名时，缺省返回数37.例子中使用了get处理器(get handler)
+```javascript
+  var handler = {
+    get: function(target,name){
+      return name in target? target[name] : 37;
+    }
+  };
+
+  var p = new Proxy({}, handler);
+  p.a = 1;
+  p.b = undefined;
+
+  console.log(p.a, p.b); // 1, undefined
+  console.log('c' in p, p.c); // false, 37
+```
+
+### 无操作转发代理
+在以下例子中，我们使用了一个原生JavaScript对象，代理会将所有应用到它的操作转发到这个对象上。
+```javascript
+  var target = {};
+  var p = new Proxy(target,{});
+
+  p.a = 37; //被转发到代理的操作
+  console.log(target.a); //37 操作已经被正确地转发。
+```
+
+### 验证
+通过代理，你可以轻松地验证向一个对象的传值。以下例子使用了set处理器(set handler)。
+```javascript
+  let validator = {
+    set: function(obj,prop,value){
+      if(pop === 'age'){
+        if(!Number.isInteger(value)){
+          throw new TypeError('The age is not an integer');
+        }
+        if(value > 200){
+          throw new RangeError('The age seems invalid');
+        }
+      }
+
+      //The default behavior to store the value
+      obj[prop] = value;
+    }
+  };
+
+  let person = new Proxy({}, validator);
+
+  person.age = 100;
+  console.log(person.age); //100
+  person.age = 'young'; //抛出异常
+  person.age = 300; //抛出异常
+```
+
+### 扩展构造函数
+方法代理可以轻松地通过一个新构造函数来扩展一个已有的构造函数。以下的例子中使用了constructor处理器(construct handler)和apply处理器(apply handler).
+```javascript
+
+```
+https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy
