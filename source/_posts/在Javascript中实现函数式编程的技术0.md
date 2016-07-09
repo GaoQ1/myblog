@@ -254,3 +254,27 @@ console.log(shadesOfGreen(100));   // '64ff00'
 ```
 
 numArgs参数让我们可以在被珂理化的函数没有给出确切参数的时候指定参数的个数。
+
+来看看用它如何处理我们的十六进制应用。我们先写个函数，它会把RGB值转化为适合HTML的16进制字符串。
+```javascript
+  function rgb2hex(r,g,b){
+    return '#' + nums2hex(r) + nums2hex(g) + nums2hex(b);
+  }
+  var hexColors = rgb2hex.curry();
+  console.log(hexColors(11)) // 返回一个珂理化的函数
+  console.log(hexColors(11, 12, 123)) // 返回一个珂理化的函数
+  console.log(hexColors(11)(12)(123)) // 返回 #0b0c7b
+  console.log(hexColors(210)(12)(0)) // 返回 #d20c00
+```
+
+> 注意，curry方法返回的函数只接受一个参数，所以上例倒数第三行传入的三个参数的后两个是没用的。
+
+这样使用柯里化不错。但是如果我们相对nums2hex()这个函数进行柯里化就会有点问题，因为这个函数没有指定参数，你可以传入任意数量的参数。所以我们需要定义参数的个数。我们curry函数的那个可选的参数来设置被柯里化函数的参数个数。
+```javascript
+  var hexs = nums2hex.curry(2);
+  console.log(hexs(11)(12));     // 返回 0b0c
+  console.log(hexs(11));         // 返回一个函数
+  console.log(hexs(110)(12)(0)); // 不正确
+```
+所以柯里化不太适合可变参数的函数，对于这种情况，建议使用部分应用函数。
+所有这些不只是利用函数工厂和代码重用，柯里化和部分应用在函数组合中扮演着更重要的角色。
