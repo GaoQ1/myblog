@@ -8,7 +8,7 @@ categories: 笔记
 ---
 > Don't let yesterday take up too much of today.
 
-`这是一个实验中的功能，此功能某些浏览器尚在开发中，请参考[浏览器兼容性表格](https://developer.mozilla.org/zh-CN/docs/Web/API/Service_Worker_API/Using_Service_Workers#Browser_compatibility)以得到在不同浏览器中适合使用的前缀。由于该功能对应的标准文档可能被重新修订，所以在未来版本的浏览器中该功能的语法和行为可能随之改变。`
+`这是一个实验中的功能，此功能某些浏览器尚在开发中，请参考浏览器兼容性表格以得到在不同浏览器中适合使用的前缀。由于该功能对应的标准文档可能被重新修订，所以在未来版本的浏览器中该功能的语法和行为可能随之改变。`
 
 本文提供了使用service workers所需要的相关知识。包括它的基本结构、注册一个service worker、一个新的service worker的安装和激活流程、更新你的service worker、缓存管理和自定义响应内容。所有这些功能点都是基于一个场景：离线APP。
 
@@ -49,15 +49,17 @@ Service workers应该最终解决了这些问题。Service Worker的语法比APP
  Promises可以做很多事情。但现在，你只需要知道，如果有什么返回了一个Promise，你可以在后面加上.then()来传入成功和失败的回调函数。或者，你可以在后面加上.catch()如果你想添加一个操作失败的回调函数。
 
  接下来，让我们对比一下传统的同步回调结构，和异步promise结构，两者在功能上是等效的：
- **同步**
- ```javascript
-  try{
-    var value = myFunction();
-    console.log(value);
-  } catch(err){
-    console.log(err);
-  }
- ```
+
+**同步**
+```javascript
+try{
+  var value = myFunction();
+  console.log(value);
+} catch(err){
+  console.log(err);
+}
+```
+
 **异步**
 ```javascript
   myFunction().then(function(value){
