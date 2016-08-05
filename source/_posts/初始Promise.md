@@ -66,7 +66,7 @@ Promise.prototype.then(onFulfilled.onRejected)
 
 ## 示例
 **创建Promise**
-这个小例子展示了Promise的机制。每当<button>被按下时，testPromise()函数就会被执行。该函数会创建一个用window.setTimeout在1秒到3秒(随机)后用‘result’字符串完成的promise。
+这个小例子展示了Promise的机制。每当`<button>`被按下时，testPromise()函数就会被执行。该函数会创建一个用window.setTimeout在1秒到3秒(随机)后用‘result’字符串完成的promise。
 这里通过p1.then方法满足回调，简单的输出了promise的满足过程，这些输出显示了该方法的同步部分是如何和promise的异步完成解耦的。
 ```javascript
   <div id="log"></div>

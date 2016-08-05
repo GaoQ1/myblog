@@ -8,7 +8,7 @@ categories: 教程
 ---
 > Shared mutable state is the root of all evil
 
-有人数Immutable可以给React应用带来数十倍的提升，也有人数Immutable的引入是近期Javascript中伟大的发明，因为同期React太火，它的光芒被掩盖了。这些至少说明Immutable是很有价值的。
+有人说Immutable可以给React应用带来数十倍的提升，也有人说Immutable的引入是近期Javascript中伟大的发明，因为同期React太火，它的光芒被掩盖了。这些至少说明Immutable是很有价值的。
 
 Javascript中的对象一般是可变的(mutable)，因为使用了引用赋值，新的对象简单的引用了原始对象，改变新的对象将影响到原始对象。虽然这样做可以节约内存，但是当应用复杂后，这就造成了非大的隐患，Mutable带来的优点变得得不偿失。为了解决这个问题，一般的做法是使用shallowCopy(浅拷贝)或deepCopy(深拷贝)来避免被修改，但这样做造成了CPU和内存的浪费。
 
@@ -91,7 +91,7 @@ Immutable.js使用了Structure Sharing 会尽量复用内存，甚至以前使�
 然而现在并没有什么卵用，因为Javascript是单线程运行的，但未来可能会加入。
 
 5. 拥抱函数式编程
-Immutable本事就是函数式编程中的概念，纯函数式编程比面向对象更适用于前端开发。因为只要输入一致，输出必然一致，这样开发的组件更易于调试和组装。
+Immutable本身就是函数式编程中的概念，纯函数式编程比面向对象更适用于前端开发。因为只要输入一致，输出必然一致，这样开发的组件更易于调试和组装。
 
 像ClojureScript,Elm等函数式编程语言中的数据类型天生都是Immutable的，这也是为什么ClojureScript基于React的框架，OM性能比React还要好的原因。
 
@@ -110,7 +110,7 @@ Immutable中的Map和List虽然对应原生Object和Array，但操作非常不�
 2. 约定变量命名规则：如所有Immutable类型对象以$$开头。
 3. 使用Immutable.fromJS而不是Immutable.Map或Immutable.List来创建对象，这样可以避免Immutable和原生对象间的混用。
 
-## 更过认识
+## 更多认识
 两个immutable对象可以使用 === 来比较，这样是直接比较内存地址，性能最好。但即使两个对象的值是一样的，也会返回false
 
 ```javascript
@@ -125,7 +125,7 @@ Immutable中的Map和List虽然对应原生Object和Array，但操作非常不�
     Immutable.is(map1,map2); //true
 ```
 
-Immutable.is比较的是两个对象的hashCode或valueOf(对于javascript对象)。由于immutable内部使用了Trie数据结构来存储，只要两个对象的hashCode相等，值就是一样的。这样的算法避免了深度遍历比较，性能非常好。
+Immutable.is比较的是两个对象的hashCode或valueOf(对于javascript对象)。由于immutable内部使用了Tree数据结构来存储，只要两个对象的hashCode相等，值就是一样的。这样的算法避免了深度遍历比较，性能非常好。
 
 后面会使用Immutable.js来减少React重复渲染，提高性能。
 
