@@ -943,10 +943,105 @@ undefined是一个值为undefined的类型。
 这个语言也定义了一个全局变量，它的值是undefined，这个变量也被称为undefined。但是这个变量不是一个常量，也不是一个关键字。这意味着它的值可以轻易被覆盖。
 
 下面的情况会返回undefined值：
- -
- http://bonsaiden.github.io/JavaScript-Garden/zh/#core.undefined
- http://jsbooks.revolunet.com/
+ - 访问未修改的全局变量undefined。
+ - 由于没有定义return表达式的函数隐式返回。
+ - return表达式没有显式的返回任何内容。
+ - 访问不存在的属性。
+ - 函数参数没有被显式的传递值。
+ - 任何被设置为undefined值得变量。
 
+处理undefined值得改变
+由于全局变量undefined只是保存了undefined类型实际值的副本，因此对它赋新值不会改变类型undefined的值。
 
+然而，为了方便其它变量和undefined做比较，我们需要事先获取类型undefined的值。
 
--------------------
+为了避免可能对undefined值得改变，一个常用的技巧是使用一个传递到匿名包装器的额外参数。在调用时，这个参数不会获取任何值。
+```javascript
+  var undefined = 123;
+  (function(sth,foo,undefined){
+    //局部作用域里的undefined变量重新获得了'undefined'值
+  })('Hello World',42)
+```
+另外一种达到相同目的方法是在函数内使用变量声明。
+```javascript
+  var undefined =  123;
+  (function(sth,foo){
+    var undefined;
+  })('Hello World',42);
+```
+这里唯一的区别是，在压缩后并且函数内没有其他需要使用var声明变量的情况下，这个版本的代码会多出4个字节的代码。
+
+**null的用处**
+JavaScript中的undefined的使用场景类似于其他语言中的null，实际上JavaScript中的null是另一种数据类型。
+
+它在JavaScript内部有一些使用场景(比如声明原型链的终结`Foo.prototype = null`)，但是大多数情况下都可以使用undefined来代替。
+
+## 其它
+### setTimeout和setInterval
+由于JavaScript是异步的，可以使用setTimeout和setInterval来计划执行函数。
+```javascript
+  function foo(){}
+  var id = setTimeout(foo,1000); //返回一个大于零的数字
+```
+当setTimeout被调用时，它会返回一个ID标识并且计划在将来大约1000毫秒后调用foo函数。foo函数只会被调用一次。
+
+基于JavaScript引擎的计时策略，以及本质上的单线程运行方式，所以其它代码的运行可能会阻塞 此线程。因此没法确保函数会在setTimeout指定的时刻被调用。
+
+作为第一个参数的函数将会在全局作用域中执行，因此函数内的this将会指向这个全局对象。
+```javascript
+  function Foo(){
+    this.value = 42;
+    this.method = function(){
+      //this指向全局对象
+      console.log(this.value); //输出undefined
+    };
+    setTimeout(this.method, 500);
+  };
+  new Foo();
+```
+
+**setInterval的堆调用**
+setTimeout只会执行回调函数一次，不过setInterval会每隔x毫秒执行函数一次。但是却不鼓励使用这个函数。
+
+当回调函数的执行被阻塞时，setInterval仍然会发布更多的回调指令。在很小的定时间隔情况下，这会导致回调函数被堆积起来。
+```javascript
+  function foo(){
+    //阻塞执行1s
+  }
+  setInterval(foo,100);
+```
+上面代码中,foo会执行一次随后被阻塞了一秒钟。
+
+在foo被阻塞的时候，setInterval仍然在组织将来对回调函数的调用。因此，当第一次foo函数调用结束时，已经有10次函数在等待执行。
+
+**处理可能的阻塞调用**
+最简单也是最容易控制的方案，是在回调函数内部使用setTimeout函数。
+```javascript
+  function foo(){
+    //阻塞执行1s
+    setTimeout(foo,100);
+  }
+  foo()
+```
+这样不仅封装了setTimeout回调函数，而且阻止了调用指令的堆积，可以有更多的控制。foo函数现在可以控制是否继续执行还是终止执行。
+
+**手工清空定时器**
+可以通过将定时时产生的 ID 标识传递给 clearTimeout 或者 clearInterval 函数来清除定时， 至于使用哪个函数取决于调用的时候使用的是 setTimeout 还是 setInterval。
+```javascript
+  var id = setTimeout(foo, 1000);
+  clearTimeout(id);
+```
+
+**清除所有定时器**
+由于没有内置的清除所有定时器的方法，可以采用一种暴力的方式来达到这一目的。
+```javascript
+  // 清空"所有"的定时器
+  for(var i = 1; i < 1000; i++) {
+      clearTimeout(i);
+  }  
+```
+可能还有些定时器不会在上面代码中被清除（译者注：如果定时器调用时返回的 ID 值大于 1000）， 因此我们可以事先保存所有的定时器 ID，然后一把清除。
+
+绝对不要使用字符串作为setTimeout或者setInterval的第一个参数，这么写的代码明显质量很差。当需要向回调函数传递参数时，可以创建一个匿名函数，在函数内执行真实的回调函数。
+
+另外，应该避免使用setInterval，因为它的定时执行不会被JavaScript阻塞。
