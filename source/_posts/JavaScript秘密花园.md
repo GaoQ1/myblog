@@ -545,4 +545,408 @@ new Bar()返回的是新创建的对象，而不是数字的字面值2.因此`ne
 ```
 虽然上例在有些情况下也能正常运行，但是由于JavaScript中this的工作原理，这里的this指向全局对象。
 
-http://bonsaiden.github.io/JavaScript-Garden/zh/#function.constructors
+### 工厂模式
+为了不使用new关键字，构造函数必须显示的返回一个值。
+```javaScript
+  function Bar(){
+    var value = 1;
+    return {
+      method: function(){
+        return value
+      }
+    }
+  }
+  Bar.prototype = {
+    foo: function(){}
+  };
+
+  new Bar();
+  Bar();
+```
+上面两种对Bar函数的调用返回的值 完全相同，一个新创建的拥有method属性的对象被返回，其实这里创建了一个闭包。
+还需要注意，`new Bar()`并不会改变返回对象的原型(也就是返回对象的原型不会指向Bar.prototype)。因为构造函数的原型会被指向到刚刚创建的新对象，而这里的Bar没有把这个新对象返回，而是返回了一个包含method属性的自定义对象。
+上面两种方式创建的对象不能访问Bar原型链上的属性，如下所示：
+```javaScript
+  var bar1 = new Bar()
+  typeof(bar1.method); //'function'
+  typeof(bar1.foo); //'undefined'
+
+  var bar2 = Bar();
+  typeof(bar2.method); //'function'
+  typeof(bar2.foo); //'undefined'
+```
+
+### 通过工厂模式创建新对象
+我们常听到的一条忠告是不要使用new关键字来调用函数，因为如果忘记使用它就会导致错误。
+为了创建新对象，我们可以创建一个工厂方法，并且在方法内构造一个新对象。
+```javaScript
+  function Foo(){
+    var obj = {}
+    obj.value = 'blub';
+
+    var private = 2;
+    obj.someMethod = function(value){
+      this.value = value;
+    }
+
+    obj.getPrivate = function(){
+      return private;
+    }
+
+    return obj;
+  }
+```
+虽然上面的方式比起new的调用不容易出错，并且可以充分利用私有变量带来的便利，但是随之而来的是一些不好的地方。
+1. 会占用更多的内容，因为新创建的对象不能共享原型上的方法。
+2. 为了实现继承，工厂方法需要从另外一个对象拷贝所有属性，或者把一个对象作为新创建对象的原型。
+3. 放弃原型链仅仅是因为防止遗漏new带来的问题，这似乎和语言本身的思想相违背。
+
+虽然遗漏new关键字可能会导致问题，但这并不是放弃使用原型链的借口。最终使用哪种方式取决于应用程序的需求，选择一种代码书写风格并坚持下去才是最重要的。
+
+### 作用域与命名空间
+尽管JavaScript支持一对花括号创建的代码段，但是并不支持块级作用域；而仅仅支持函数作用域。
+```javaScript
+  function test(){ //一个作用域
+    for(var i=0;i<10;i++){ //不是一个作用域
+      //count
+    }
+    console.log(i); //10
+  }
+```
+**注意：** 如果return对象左括号和return不在一行上就会出错。
+```javaScript
+  function add(a,b){
+    return
+      a + b;
+  }
+  console.log(add(1,2));
+  //输出undefined
+```
+如果不是在赋值语句中，而是在return表达式或者函数参数中，{...}将会作为代码段解析，而不是作为对象的字面语法解析。如果考虑到自动分号插入，这可能会导致一些不易察觉的错误。
+JavaScript中没有显示的命名空间定义，这就意味着所有对象都定义在一个全局共享的命名空间下面。
+每次引用一个变量，JavaScript会向上遍历整个作用域知道找到这个变量为止。如果到达全局作用域但是这个变量仍未找到，则会抛出`ReferenceError`异常。
+
+**名称解析顺序**
+JavaScript中的所有作用域，包括全局作用域，都有一个特别的名称this指向当前对象。
+函数作用域内也有默认的变量arguments，其中包含了传递到函数中的参数。
+比如，当访问函数内的foo变量时，JavaScript会按照下面顺序查找：
+1. 当前作用域内是否有`var foo`的定义。
+2. 函数形式参数是否有使用foo名称的。
+3. 函数自身是否叫做foo。
+4. 回溯到上一级作用域，然后从#1重新开始。
+
+**命名空间**
+只有一个全局作用域导致的常见错误是命名冲突。在JavaScript中，这可以通过匿名包装器轻松解决。 *注意：* 自定义arguments参数会阻止原生的arguments对象的创建。
+```javaScript
+  (function(){
+    //函数创建一个命名空间
+
+    window.foo = function(){
+      //对外公开的函数，创建了闭包
+    }
+  })(); //立即执行此匿名函数
+```
+
+匿名函数被认为是表达式；因此为了可调用新，它们首先会被执行。
+
+有一些其他的调用函数表达式的方法，比如下面的两种方式语法不同，但是效果一模一样。
+```javaScript
+  //另外两种方式
+  +function(){}();
+  (function(){})();
+```
+推荐使用匿名包装器，也就是自执行的匿名函数，来创建命名空间。这样不仅可以防止命名冲突，而且有利于程序的模块化。
+另外，使用全局变量被认为是不好的习惯。这样的代码容易出错并且维护成本较高。
+
+## 数组
+### 数组遍历与属性
+虽然在JavaScript中数组是对象，但是没有好的理由去使用`for in循环`遍历数组。相反，有一些好的理由不去使用for in遍历数组。
+由于for in循环会枚举原型链上的所有属性，唯一过滤这些属性的方式是使用hasOwnProperty函数，因此会比普通的for循环慢上好多倍。
+
+**遍历**
+为了达到遍历数组的最佳性能，推荐使用经典的for循环。
+```javaScript
+  var list = [1,2,3,4,5,...1000];
+  for(var i=0,l=list.length;i<l;i++){
+    console.log(list[i]);
+  }
+```
+上面的代码有一个处理，就是通过`l = list.length`来缓存数组的长度。
+虽然length是数组的一个属性，但是在每次循环中访问它还是有性能开销。可能最新的JavaScript引擎在这点上做了优化，但是我们没法保证自己的代码是否运行在这些最近的引擎之上。
+实际上，不使用缓存数组长度的方式比缓存版本要慢很多。
+
+**length属性**
+length属性的getter方式会简单的返回数组的长度，而setter方式会截断数组。
+```javaScript
+  var foo = [1,2,3,4,5,6];
+  foo.length = 3;
+  foo; //[1,2,3]
+
+  foo.length = 6;
+  foo; //[1,2,3]
+```
+在Firebug中查看此时foo的值是：[1,2,3,undefined,undefined,undefined]但是这个结果并不准确，如果你在Chrome的控制台查看foo的结果，你会发现是这样的，[1,2,3]因为在javaScript中undefined是一个变量，注意是变量不是关键字，因此上面两个结果的意义是完全不相同的。
+为length设置一个更小的值会截断数组，但是增大length属性值不会对数组产生影响。
+
+为了更好的性能，推荐使用普通的for循环并缓存数组的length属性。使用for in遍历数组被认为是不好的代码习惯并倾向于产生错误和导致性能问题。
+
+### Array构造函数
+由于Array的构造函数在如何处理参数时有点模棱两口，因此总是推荐使用数组的字面语法 - [] - 来创建数组。
+```javaScript
+  [1,2,3]; //[1,2,3]
+  new Array(1,2,3); //[1,2,3]
+
+  [3]; //[3]
+  new Array(3); //[]
+  new Array('3'); //['3']
+
+  new Array(3,4,5); //[3,4,5]
+  new Array(3); //[],此数组长度为3
+```
+由于只有一个参数传递到构造函数中，并且这个参数时数组，构造函数会返回一个length属性被设置为此参数的空数组。需要特别注意的是，此时只有length属性被设置，真正的数组并没有生成。
+```javaScript
+  var arr = new Array(3);
+  arr[1]; //undefined
+  1 in arr; //false,数组还没有生成
+```
+这种优先于设置数组长度属性的做法只在少数几种情况下有用，**比如需要循环字符串，可以避免for循环的麻烦。**
+`new Array(count + 1).join(stringToRepeat);`
+new Array(3).join('#') 将会返回##
+
+应该尽量避免使用数组构造函数创建新数组。推荐使用数组的字面语法。它们更加短小和简洁，因此增加了代码的可读性。
+
+## 类型
+### typeof操作符
+typeof操作符(和 instanceof一起)或许是JavaScript中最大的设计缺陷，因为几乎不可能从它们那里得到想要的结果。
+尽管instanceof还有一些极少数的应用场景，typeof只有一个实际的应用，就是用来检测一个对象是否已经定义或者是否已经赋值，而不是用来检查对象的类型。
+
+**JavaScript类型表格**
+| Value | Class | Type |
+| ------ | :-------: | :----------- |
+| "foo" | String | string |
+| new String('foo') | String | object |
+| 1.2 | Number | number |
+| new Number(1.2) | Number | number |
+| true | Boolean | boolean |
+| new Boolean(true) | Boolean | object |
+| new Date() | Date | object |
+| new Error() | Error | object |
+| [1,2,3] | Array | object |
+| new Array(1,2,3) | Array | object |
+| new Function("") | Function | function |
+| /abc/g | RegExp | object |
+| new RegExp("co") | RegExp | object |
+| {} | Object | object |
+| new Object() | Object | object |
+上面表格中，Type一列表示typeof操作符的运算结果。可以看到，这个值在大多数情况下都返回"object"。
+Class一列表示对象的内部属性[[Class]]的值。
+为了获取对象的[[Class]]，我们需要使用定义在Object.prototype上的方法toString。
+Javascript标准文档中定义：[[Class]]的值只可能是下面字符串中的一个：Arguments、Array、Boolean、Date、Error、Function、JSON、Math、Number、Object、RegExp、String.
+
+**对象的类定义**
+JavaScript标准文档只给出了一种获取[[Class]]值的方法，那就是使用Object.prototype.toString
+```javaScript
+  function is(type,obj){
+    var class = Object.prototype.toString.call(obj).slice(8,-1);
+    return obj !== undefined && obj !==null && class === type;
+  }
+
+  is('String', 'test'); //true
+  is('String', new String('test')); //true
+```
+上面例子中，Object.prototype.toString方法被调用，this被设置为需要获取[[Class]]值的对象。
+Object.prototype.toString 返回一种标准格式字符串，所以上例可以通过slice截取指定位置的字符串，如下所示：
+```javaScript
+  Object.prototype.toString.call([]); // "[object Array]"
+  Object.prototype.toString.call({}); // "[object Object]"
+  Object.prototype.toString.call(2); // "[object Number]"
+```
+**ES5提示：** 在ECMAScript5中，为了方便，对null和undefined调用Object.prototype.toString方法，其返回值由Object变成了Null和Undefined。
+```javaScript
+  //IE8
+  Object.prototype.toString.call(null); //"[object Object]"
+  Object.prototype.toString.call(undefined); //"[object Object]"
+
+  //Firefox 4
+  Object.prototype.toString.call(null); //"[object Null]"
+  Object.prototype.toString.call(undefined); //"[object Undefined]"
+```
+
+**测试为定义变量**
+```javaScript
+  typeof foo !== 'undefined'
+```
+上面代码会检测foo是否已经定义；如果没有定义而直接使用会导致ReferenceError的异常。这是typeof唯一有用的地方。
+
+为了检测一个对象的类型，强烈推荐使用Object.prototype.toString方法；因为这是唯一一个可依赖的方式。正如上面表格所示，typeof的一些返回值在标准文档中并未定义，因此不同的引擎实现可能不同。
+除非为了检测一个变量是否已经定义，我们应尽量避免使用typeof操作符。
+
+### instanceof操作符
+instanceof操作符用来比较两个操作数的构造函数。只有在比较自定义的对象时才有意义。如果用来比较内置类型，将会和typeof操作符一样用处不大。
+
+**比较自定义对象**
+```javaScript
+  function Foo(){}
+  function Bar(){}
+  Bar.prototype = new Foo();
+
+  new Bar() instanceof Bar; //true
+  new Bar() instanceof Foo; //true
+
+  //如果仅仅设置Bar.prototype为函数Foo本身，而不是Foo构造函数的一个实例
+  Bar.prototype = Foo;
+  new Bar() instanceof Foo; //false
+```
+
+instanceof 比较内置类型
+```javaScript
+  new String('foo') instanceof String; //true
+  new String('foo') instanceof Object; //true
+
+  'foo' instanceof String; //false
+  'foo' instanceof Object; //false
+```
+有一点需要注意，instanceof用来比较属于不同javaScript上下文的对象时将会出错，因为他们的构造函数不会是同一个对象。
+
+instanceof操作符应该仅仅用来比较来自同一个JavaScript上下文的自定义对象。正如typeof操作符一样，任何其它的用法都应该是避免的。
+
+### 类型转换
+JavaScript是弱类型语言，所以会在任何可能的情况下应用强制类型转换。
+```javaScript
+  // 下面的比较结果是：true
+  new Number(10) == 10; // Number.toString() 返回的字符串被再次转换为数字
+
+  10 == '10';           // 字符串被转换为数字
+  10 == '+10 ';         // 同上
+  10 == '010';          // 同上
+  isNaN(null) == false; // null 被转换为数字 0
+                      // 0 当然不是一个 NaN（译者注：否定之否定）
+
+  // 下面的比较结果是：false
+  10 == 010;
+  10 == '-10';
+```
+**ES5提示：** 以 0 开头的数字字面值会被作为八进制数字解析。而在ECMAScript 5严格模式下，这个特性被移除了。
+为了避免上面复杂的强制类型转换，强烈推荐使用严格的等于操作符。 虽然这可以避免大部分的问题，但 JavaScript 的弱类型系统仍然会导致一些其它问题。
+
+**内置类型的构造函数**
+内置类型（比如 Number 和 String）的构造函数在被调用时，使用或者不使用 new 的结果完全不同
+```javaScript
+  new Number(10) === 10;     // False, 对象与数字的比较
+  Number(10) === 10;         // True, 数字与数字的比较
+  new Number(10) + 0 === 10; // True, 由于隐式的类型转换
+```
+使用内置类型 Number 作为构造函数将会创建一个新的 Number 对象， 而在不使用 new 关键字的 Number 函数更像是一个数字转换器。
+
+另外，在比较中引入对象的字面值将会导致更加复杂的强制类型转换。
+
+最好的选择是把要比较的值显式的转换为三种可能的类型之一。
+
+**转换为字符串**
+```javaScript
+  '' + 10 === '10'; //true
+```
+将一个值加上空字符串可以轻松转换为字符串类型
+
+**转换为数字**
+```javaScript
+  +'10' === 10; //true
+```
+使用一元的加号操作符，可以把字符串转换为数字。
+
+字符串转换为数字的常用方法
+```javaScript
+  +'010' === 10
+  Number('010') === 10
+  parseInt('010', 10) === 10  // 用来转换为整数
+
+  +'010.2' === 10.2
+  Number('010.2') === 10.2
+  parseInt('010.2', 10) === 10  
+```
+
+**转换为布尔值**
+通过使用两次否操作符，可以把一个值转换为布尔型。
+```javaScript
+  !!'foo';   // true
+  !!'';      // false
+  !!'0';     // true
+  !!'1';     // true
+  !!'-1'     // true
+  !!{};      // true
+  !!true;    // true
+```
+
+## 核心
+### 为什么不要使用eval
+eval函数会在当前作用域中执行一段JavaScript代码字符串。
+```javaScript
+  var foo = 1;
+  function test(){
+    var foo = 2;
+    eval('foo = 3');
+    return foo;
+  }
+  test(); //3
+  foo; //1
+```
+
+**注意：** 但是eval只在被直接调用并且调用函数就是eval本身时，才在当前作用域中执行。
+```javaScript
+  var foo = 1;
+  function test(){
+    var foo = 2;
+    var bar = eval;
+    bar('foo = 3');
+    return foo;
+  }
+  test(); //2
+  foo; //3
+```
+上面的代码等价于在全局作用域中调用eval，和下面两种写法效果一样：
+```javaScript
+  // 写法一：直接调用全局作用域下的 foo 变量
+  var foo = 1;
+  function test() {
+    var foo = 2;
+    window.foo = 3;
+    return foo;
+  }
+  test(); // 2
+  foo; // 3
+
+  // 写法二：使用 call 函数修改 eval 执行的上下文为全局作用域
+  var foo = 1;
+  function test() {
+    var foo = 2;
+    eval.call(window, 'foo = 3');
+    return foo;
+  }
+  test(); // 2
+  foo; // 3
+```
+在任何情况下我们都应该避免使用 eval 函数。99.9% 使用 eval 的场景都有不使用 eval 的解决方案。
+
+**伪装的eval**
+定时函数setTimeout和setInterval都可以接受字符串作为它们的第一个参数。这个字符串总是在全局作用域中执行，因此eval在这种情况下没有被直接调用。
+
+**安全问题**
+eval也存在安全问题，因为它会执行任意传给它的代码，在代码字符串未知或者是来自一个不信任的源时，绝对不要使用eval函数。
+
+绝对不要使用 eval，任何使用它的代码都会在它的工作方式，性能和安全性方面受到质疑。 如果一些情况必须使用到 eval 才能正常工作，首先它的设计会受到质疑，这不应该是首选的解决方案， 一个更好的不使用 eval 的解决方案应该得到充分考虑并优先采用。
+
+### undefined和null
+JavaScript有两个表示‘空’的值，其中比较有用的是undefined.
+
+**undefined的值**
+undefined是一个值为undefined的类型。
+这个语言也定义了一个全局变量，它的值是undefined，这个变量也被称为undefined。但是这个变量不是一个常量，也不是一个关键字。这意味着它的值可以轻易被覆盖。
+
+下面的情况会返回undefined值：
+ -
+ http://bonsaiden.github.io/JavaScript-Garden/zh/#core.undefined
+ http://jsbooks.revolunet.com/
+
+
+
+-------------------
