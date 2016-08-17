@@ -608,7 +608,46 @@ myRevealingModule.start();
 为什么对于单例模式来讲，延迟执行这么重要？
 
 **在C++代码中，单例模式将不可预知的动态初始化顺序问题隔离掉，将控制权返回给程序员。**
-区分类的静态实例和单例模式很重要：尽管单例模式可以被实现成一个静态实例，但是单例可以来构造，在真正用到之前，单例模式不需要分配资源或者内存。
+区分类的静态实例和单例模式很重要：尽管单例模式可以被实现成一个静态实例，但是单例可以懒构造，在真正用到之前，单例模式不需要分配资源或者内存。
+如果我们有个静态对象可以被直接初始化，我们需要保证代码总是以同样的顺序执行当你有很多源文件的时候，这种方式没有可扩展性。
+单例模式和静态对象都很有用，但是不能滥用-同样的我们也不能滥用其他模式。
+在实践中，当一个对象需要和另外的对象进行跨系统协作的时候，单例模式很有用。下面是一个单例模式在这种情况下使用的例子：
+```javascript
+  var SingletonTester = (function(){
+    // options: an object containing configuration options for the singleton
+    function Singleton(options){
+      options = options || {};
+      this.name = "SingletonTesterer";
+      this.pointX = options.pointX || 6;
+      this.pointY = options.pointX || 10;
+    };
+
+    var instance;
+    var _static = {
+      name: "SingletonTesterer",
+      getInstance: function(options){
+        if(instance === undefined){
+          instance = new Singleton(options);
+        }
+        return instance;
+      }
+    };
+
+    return _static;
+  })();
+
+  var singletonTest = SingletonTesterer.getInstance({
+    pointX: 5
+  });
+
+  console.log(singletonTest.pointX);
+```
+
+尽管单例模式有着合理的使用需求，但是通常当我们发现自己需要在javascript使用它的时候，这是一种信号，表明我们可能需要去重新评估自己的设计。
+这通常表明系统中的模块要么紧耦合要么逻辑过于分散在代码库的多个部分。单例模式更难测试，因为可能有多种多样的问题出现，例如隐藏的依赖关系，很难去创建多个实例，很难理清依赖关系，等等。
+
+
+
 
 
 
