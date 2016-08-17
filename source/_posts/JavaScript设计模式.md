@@ -597,7 +597,7 @@ myRevealingModule.start();
 ```javascript
   mySingleton.getInstance = function(){
     if(this._instance == null){
-      this.__instance = new FooSingleton();
+      this._instance = new FooSingleton();
     }else{
       this._instance = new BasicSingleton();
     }
@@ -605,6 +605,11 @@ myRevealingModule.start();
   }
 ```
 在这里，getInstance 有点类似于工厂方法，我们不需要去更新每个访问单例的代码。FooSingleton可以是BasicSinglton的子类，并且实现了相同的接口。
+为什么对于单例模式来讲，延迟执行这么重要？
+
+**在C++代码中，单例模式将不可预知的动态初始化顺序问题隔离掉，将控制权返回给程序员。**
+区分类的静态实例和单例模式很重要：尽管单例模式可以被实现成一个静态实例，但是单例可以来构造，在真正用到之前，单例模式不需要分配资源或者内存。
+
 
 
 
