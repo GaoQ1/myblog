@@ -646,6 +646,7 @@ myRevealingModule.start();
 尽管单例模式有着合理的使用需求，但是通常当我们发现自己需要在javascript使用它的时候，这是一种信号，表明我们可能需要去重新评估自己的设计。
 这通常表明系统中的模块要么紧耦合要么逻辑过于分散在代码库的多个部分。单例模式更难测试，因为可能有多种多样的问题出现，例如隐藏的依赖关系，很难去创建多个实例，很难理清依赖关系，等等。
 
+
 ## 观察者模式
 观察者模式是这样一种设计模式。一个被称作被观察者的对象，维护一组被称为观察者的对象，这些对象依赖于被观察者，被观察者自动将自身的状态的任何变化通知给它们。
 
@@ -826,23 +827,100 @@ function AddNewObserver(){
 这种和观察者模式之间的不同，使订阅者可以实现一个合适的事件处理函数，用于注册和接受由发布者广播的相关通知。
 
 这里给出一个关于如何使用发布者/订阅者模式的例子，这个例子中完整地实现了功能强大的publish(), subscribe() 和 unsubscribe()。
+```javascript
+  //一个非常简单的邮件处理器
+  //接受的消息的计数器
+  var mailCounter = 0;
 
+  //初始化一个订阅者，这个订阅者监听名叫"indox/newMessage"的频道
 
+  //渲染新消息的粗略信息
+  var subscribe1 = subscribe("inbox/newMessage", function(topic,data){
+    //日志记录主题，用于调试
+    console.log("A new message was received: ", topic);
 
+    //使用来自于被观察者的数据，用于给用户展示一个消息的粗略信息
+    $(".messageSender").html(data.sender);
+    $(".messagePriview").html(data.body);
+  });
 
+  //这是另外一个订阅者，使用相同的数据执行不同的任务
+  //更新计数器，显示当前来自于发布者的新信息的数量
+  var subscribe2 = subscribe("inbox/newMessage", function(topic,data){
+    $(".newMessageCounter").html(mailCounter++);
+  });
 
+  publish("inbox/newMessage",[{
+    sender: "hello@ceair.com",
+    body: "Hello world!"
+  }]);
 
+  //在之后，我们可以让我们的订阅者通过下面的方式取消订阅来自于新主题的通知
+  //unsubscribe(subscribe1);
+  //unsubscribe(subscribe2);
+```
+这个例子的更广的意义是对松耦合的原则的一种推崇。不是一个对象直接调用另外一个对象的方法，而是通过订阅另外一个对象的一个特定的任务或者活动，从而在这个任务或者活动出现的时候得到通知。
 
+**优势**
+观察者和发布/订阅模式鼓励人们认真考虑应用不同部分之间的关系，同时帮助我们找出这样的层，该层中包含有直接的关系，这些关系可以通过一系列的观察者和被观察者来替换掉。这种方式可以有效地将一个应用程序切割成小块，这些小块耦合度低，从而改善代码的管理，以及用于潜在的代码复用。
 
+使用观察者模式更深层次的动机是，当我们需要维护相关对象的一致性的时候，我们可以避免对象之间的紧密耦合。例如，一个对象可以通知另外一个对象，而不需要知道这个对象的信息。
 
+两种模式下，观察者和被观察者之间都可以存在动态关系。这提供很好的灵活性，而当我们的应用中不同的部分之间紧密耦合的时候，是很难实现这种灵活性的。
 
+尽管这些模式并不是万能的灵丹妙药，这些模式仍然是作为最好的设计松耦合系统的工具之一，因此在任何的JavaScript开发者的工具箱里面，都应该有这样一个重要的工具。
 
+**缺点**
+事实上，这些模式的一些问题实际上正是来自于它们所带来的一些好处。在发布/订阅模式中，将发布者共订阅者上解耦，将会在一些情况下，导致很难确保我们应用中的特定部分按照我们预期的那样正常工作。
 
+例如，发布者可以假设有一个或者多个订阅者正在监听他们。比如我们基于这样的假设，在某些应用处理过程中来记录或者输出错误日志。如果订阅者执行日志功能崩溃了，因为系统本身的解耦本质，发布者没有办法感知到这些事情。
 
+另外一个这种模式的缺点是，订阅者对彼此之间存在没有感知，对切换发布者的代价无从得知。因为订阅者和发布者之间的动态关系，更新依赖也很难去追踪。
 
+**发布/订阅实现**
+发布/订阅在JavaScript的生态系统中非常合适，主要是因为作为核心的ECMAScript实现是事件驱动的。尤其是在浏览器环境下更是如此，因为DOM使用事件作为其主要的用于脚本的交互API。
 
+也就是说，无论是ECMAScript还是DOM都没有在实现代码中提供核心对象或者方法用于创建定制的事件系统。
 
+幸运的是，流行的JavaScript库例如dojo, jQuery(定制事件)以及YUI已经有相关的工具，可以帮助我们方便的实现一个发布/订阅者系统。下面我们看一些例子。
+```javascript
+  // 发布
 
+  // jQuery: $(obj).trigger("channel", [arg1, arg2, arg3]);
+  $( el ).trigger( "/login", [{username:"test", userData:"test"}] );
 
+  // Dojo: dojo.publish("channel", [arg1, arg2, arg3] );
+  dojo.publish( "/login", [{username:"test", userData:"test"}] );
 
-------------------
+  // YUI: el.publish("channel", [arg1, arg2, arg3]);
+  el.publish( "/login", {username:"test", userData:"test"} );
+
+  // 订阅
+
+  // jQuery: $(obj).on( "channel", [data], fn );
+  $( el ).on( "/login", function( event ){...} );
+
+  // Dojo: dojo.subscribe( "channel", fn);
+  var handle = dojo.subscribe( "/login", function(data){..} );
+
+  // YUI: el.on("channel", handler);
+  el.on( "/login", function( data ){...} );
+
+  // 取消订阅
+
+  // jQuery: $(obj).off( "channel" );
+  $( el ).off( "/login" );
+
+  // Dojo: dojo.unsubscribe( handle );
+  dojo.unsubscribe( handle );
+
+  // YUI: el.detach("channel");
+  el.detach( "/login" );
+```
+
+尤其对于jQuery 开发者来讲，他们拥有很多其它的选择，可以选择大量的良好实现的代码，从Peter Higgins 的jQuery插件到Ben Alman 在GitHub 上的（优化的）发布/订阅 jQuery gist。下面给出了这些代码的链接。
+ - [Ben Alman的发布/订阅 gist(推荐)](https://gist.github.com/661855)
+ - [Rick Waldron 在上面基础上修改的 jQuery-core 风格的实现](https://gist.github.com/705311)
+ - [Peter Higgins 的插件](http://github.com/phiggins42/bloody-jquery-plugins/blob/master/pubsub.js)
+ - [AppendTo 在AmplifyJS中的 发布/订阅实现](http://amplifyjs.com/)
+ - [Ben Truyman的 gist](https://gist.github.com/826794)
