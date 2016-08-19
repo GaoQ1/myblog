@@ -98,37 +98,242 @@ var mediator = (function(){
     }
   })();
 ```
+在我们的中介者模式中包含了一长串的回调和子主题，当中间人发布在我们中间人实体上被调用的时候被启动。它也包含操作数据列表方法。
+```javascript
+  //Let's model the topic
+  //JavaScript lets us use a Function object as a conjunction of a prototype for use with the new object and a constructor function to be invoked.
+  function Topic(namespace){
+    if(!(this instanceof Topic)){
+      return new Topic(namespace);
+    }else{
+      this.namespace = namespace || "";
+      this._callbacks = [];
+      this._topics = [];
+      this.stopped = false;
+    }
+  }
 
+  //Define the prototype for our topic, including ways to add new subscribers or retrieve existing ones.
+  Topic.prototype = {
+    //Add a new subscriber
+    AddSubscriber: function(fn,options,context){
+      var callback = new Subscriber(fn, options, context);
+      this._callbacks.push(callback);
+      callback.topic = this;
+      return callback;
+    }
+  }
+```
 
+我们的主题实体被当做中间人调用的一个参数被传递。使用一个方便实用的calledStopPropagation()方法，回调就可以进一步被传播开来：
+```javascript
+  StopPropagation: function(){
+    this.stopped: true;
+  }
+```
 
+我们也能够使得当提供一个GUID的标识符的时候检索订购用户更加容易:
+```javascript
+  GetSubscriber: function(identifier){
+    for(var x=0,y=this._callbacks.length; x<y ; x++){
+      if(this._callbacks[x].id == identifier || this._callbacks[x].fn == identifier){
+        return this._callbacks[x];
+      }
+    }
 
+    for(var z in this._topics){
+      if(this._topics.hasOwnProperty(z)){
+        var sub = this._topics[z].GetSubscriber(identifier);
+        if(sub !== undefined)(
+          return sub;
+        )
+      }
+    }
+  }
+```
 
+接着，在我们需要它们的情况下，我们也能够提供添加新主题，检查现有的主题或者检索主题的简单方法：
+```javascript
+  AddTopic: function( topic ){
+    this._topics[topic] = new Topic( (this.namespace ? this.namespace + ":" : "") + topic );
+  },
 
+  HasTopic: function( topic ){
+    return this._topics.hasOwnProperty( topic );
+  },
 
+  ReturnTopic: function( topic ){
+    return this._topics[topic];
+  }
+```
 
+如果我们觉得不再需要它们了,我们也可以明确的删除这些订购用户.下面就是通过它的其子主题递归删除订购用户的代码:
+```javascript
+  RemoveSubscriber: function( identifier ){
+    if( !identifier ){
+      this._callbacks = [];
 
+      for( var z in this._topics ){
+        if( this._topics.hasOwnProperty(z) ){
+          this._topics[z].RemoveSubscriber( identifier );
+        }
+      }
+    }
 
+    for( var y = 0, x = this._callbacks.length; y < x; y++ ) {
+      if( this._callbacks[y].fn == identifier || this._callbacks[y].id == identifier ){
+        this._callbacks[y].topic = null;
+        this._callbacks.splice( y,1 );
+        x--; y--;
+      }
+    }
+  }
+```
 
+接着我们通过递归子主题将发布任意参数的能够包含到订购服务对象中:
+```javascript
+  Publish: function( data ){
 
+      for( var y = 0, x = this._callbacks.length; y < x; y++ ) {
 
+          var callback = this._callbacks[y], l;
+            callback.fn.apply( callback.context, data );
 
+        l = this._callbacks.length;
 
+        if( l < x ){
+          y--;
+          x = l;
+        }
+      }
 
+      for( var x in this._topics ){
+        if( !this.stopped ){
+          if( this._topics.hasOwnProperty( x ) ){
+            this._topics[x].Publish( data );
+          }
+        }
+      }
 
+      this.stopped = false;
+    }
+  };
+```
 
+接着我们暴露我们将主要交互的调节实体.这里它是通过注册的并且从主题中删除的事件来实现的
+```javascript
+  function Mediator() {
 
+    if ( !(this instanceof Mediator) ) {
+      return new Mediator();
+    }else{
+      this._topics = new Topic( "" );
+    }
 
+  };
+```
 
+想要更多先进的用例,我们可以看看调解支持的主题命名空间,下面这样的asinbox:messages:new:read.GetTopic 返回基于一个命名空间的主题实体。
+```javascript
+  Mediator.prototype = {
 
+    GetTopic: function( namespace ){
+      var topic = this._topics,
+          namespaceHierarchy = namespace.split( ":" );
 
+      if( namespace === "" ){
+        return topic;
+      }
 
+      if( namespaceHierarchy.length > 0 ){
+        for( var i = 0, j = namespaceHierarchy.length; i < j; i++ ){
 
+          if( !topic.HasTopic( namespaceHierarchy[i]) ){
+            topic.AddTopic( namespaceHierarchy[i] );
+          }
 
+          topic = topic.ReturnTopic( namespaceHierarchy[i] );
+        }
+      }
 
+      return topic;
+    },  
+```
 
+这一节我们定义了一个Mediator.Subscribe方法，它接受一个主题命名空间,一个将要被执行的函数,选项和又一个在订阅中调用函数的上下文环境.这样就创建了一个主题,如果这样的一个主题存在的话
+```javascript
+  Subscribe: function( topiclName, fn, options, context ){
+    var options = options || {},
+        context = context || {},
+        topic = this.GetTopic( topicName ),
+        sub = topic.AddSubscriber( fn, options, context );
 
+    return sub;
+  },
+```
 
+根据这一点,我们可以进一步定义能够访问特定订阅用户,或者将他们从主题中递归删除的工具
+```javascript
+  // Returns a subscriber for a given subscriber id / named function and topic namespace
 
+  GetSubscriber: function( identifier, topic ){
+    return this.GetTopic( topic || "" ).GetSubscriber( identifier );
+  },
 
+  // Remove a subscriber from a given topic namespace recursively based on
+  // a provided subscriber id or named function.
 
----------------
+  Remove: function( topicName, identifier ){
+    this.GetTopic( topicName ).RemoveSubscriber( identifier );
+  },
+```
+
+我们主要的发布方式可以让我们随意发布数据到选定的主题命名空间，这可以在下面的代码中看到。
+
+主题可以被向下递归.例如,一条对inbox:message的post将发送到inbox:message:new和inbox:message:new:read.它将像接下来这样被使用:Mediator.Publish( "inbox:messages:new", [args] );
+```javascript
+  Publish: function( topicName ){
+      var args = Array.prototype.slice.call( arguments, 1),
+          topic = this.GetTopic( topicName );
+
+      args.push( topic );
+
+      this.GetTopic( topicName ).Publish( args );
+    }
+  };
+```
+
+最后，我们可以很容易的暴露我们的中间人，将它附着在传递到根中的对象上：
+```javascript
+  root.Mediator = Mediator;
+    Mediator.Topic = Topic;
+    Mediator.Subscriber = Subscriber;
+
+    // Remember we can pass anything in here. I've passed inwindowto
+    // attach the Mediator to, but we can just as easily attach it to another
+    // object if desired.
+  })( window );
+```
+
+### 优点&缺点
+中间人模式最大的好处就是，它节约了对象或者组件之间的通信信道，这些对象或者组件存在于从多对多到多对一的系统之中。由于解耦合水平的因素，添加新的发布或者订阅者是相对容易的。
+
+也许使用这个模式最大的缺点是它可以引入一个单点故障。在模块之间放置一个中间人也可能会造成性能损失，因为它们经常是间接地的进行通信的。由于松耦合的特性，仅仅盯着广播很难去确认系统是如何做出反应的。
+
+这就是说，提醒我们自己解耦合的系统拥有许多其它的好处，是很有用的——如果我们的模块互相之间直接的进行通信，对于模块的改变（例如：另一个模块抛出了异常）可以很容易的对我们系统的其它部分产生多米诺连锁效应。这个问题在解耦合的系统中很少需要被考虑到。
+
+在一天结束的时候，紧耦合会导致各种头痛，这仅仅只是另外一种可选的解决方案，但是如果得到正确实现的话也能够工作得很好。
+
+### 中间人Vs观察者
+中间人模式最大的好处就是，它节约了对象或者组件之间的通信信道，这些对象或者组件存在于从多对多到多对一的系统之中。由于解耦合水平的因素，添加新的发布或者订阅者是相对容易的。
+
+也许使用这个模式最大的缺点是它可以引入一个单点故障。在模块之间放置一个中间人也可能会造成性能损失，因为它们经常是间接地的进行通信的。由于松耦合的特性，仅仅盯着广播很难去确认系统是如何做出反应的。
+
+这就是说，提醒我们自己解耦合的系统拥有许多其它的好处，是很有用的——如果我们的模块互相之间直接的进行通信，对于模块的改变（例如：另一个模块抛出了异常）可以很容易的对我们系统的其它部分产生多米诺连锁效应。这个问题在解耦合的系统中很少需要被考虑到。
+
+在一天结束的时候，紧耦合会导致各种头痛，这仅仅只是另外一种可选的解决方案，但是如果得到正确实现的话也能够工作得很好。
+
+### 中间人Vs门面
+不久我们的描述就将涵盖门面模式，但作为参考之用，一些开发者也想知道中间人和门面模式之间有哪些相似之处。它们都对模块的功能进行抽象，但有一些细微的差别。
+
+中间人模式让模块之间集中进行通信，它会被这些模块明确的引用。门面模式却只是为模块或者系统定义一个更加简单的接口，但不添加任何额外的功能。系统中其他的模块并不直接意识到门面的概念，而可以被认为是单向的。
