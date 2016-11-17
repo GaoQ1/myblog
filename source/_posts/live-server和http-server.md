@@ -22,10 +22,11 @@ categories: 教程
 ```
 安装完毕后，你就可以在你需要其服务的目录下直接输入`live-server`或者`http-server`
 
-## (live-server)[https://github.com/tapio/live-server]和(http-server)[https://github.com/indexzero/http-server]的区别
+## [live-server](https://github.com/tapio/live-server)和[http-server](https://github.com/indexzero/http-server)的区别
+
 `live-server`提供的功能是：
- - 由于安全限制，AJAX的请求不能是`file://`的协议。因此你需要创建一个server来调用AJAX请求
- - `live-server`另一个用途是，当所要监控的文件发生变化，页面会自动刷新，且十分方便简单。
+ 1. 由于安全限制，AJAX的请求不能是`file://`的协议。因此你需要创建一个server来调用AJAX请求
+ 2. `live-server`另一个用途是，当所要监控的文件发生变化，页面会自动刷新，且十分方便简单。
 
 `http-server`功能就略微单一，只是一个简单的无须配置的http服务器。
 
